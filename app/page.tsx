@@ -1,42 +1,21 @@
-'use client'
-// app/approve/page.tsx
-// Transaction approval page — deep linked from notification
-
-import { Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
-import TransactionApproval from '@/components/TransactionApproval'
-
-function ApprovalContent() {
-  const params = useSearchParams()
-  const txId = params.get('txId') || undefined
-  const role = (params.get('role') as 'owner' | 'user') || 'user'
-
+export default function Home() {
   return (
-    <TransactionApproval
-      txId={txId}
-      role={role}
-      onApproved={(id) => console.log('✅ Approved:', id)}
-      onRejected={(id) => console.log('❌ Rejected:', id)}
-    />
-  )
-}
-
-export default function ApprovePage() {
-  return (
-    <Suspense fallback={
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#030508',
-        color: '#00b3f7',
-        fontFamily: 'monospace',
-      }}>
-        Loading...
+    <main style={{
+      minHeight: '100vh',
+      background: '#030508',
+      display: 'flex',
+      flexDirection: 'column' as const,
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: '#00b3f7',
+      fontFamily: 'monospace',
+      gap: '16px'
+    }}>
+      <div style={{ fontSize: '3rem' }}>⬡</div>
+      <div style={{ fontSize: '1.5rem', letterSpacing: '0.2em' }}>THE WALL</div>
+      <div style={{ fontSize: '0.8rem', color: 'rgba(0,179,247,0.5)' }}>
+        Kannur → Dubai · DWIN · 2026
       </div>
-    }>
-      <ApprovalContent />
-    </Suspense>
+    </main>
   )
 }
