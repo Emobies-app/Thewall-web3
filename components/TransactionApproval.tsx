@@ -1,4 +1,3 @@
-```tsx
 'use client'
 import { useState, useEffect } from 'react'
 
@@ -299,5 +298,4 @@ export default function TransactionApproval({ txId, amount, to, email, onApprove
     </div>
   )
 }
-```
 
