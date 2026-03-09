@@ -170,7 +170,7 @@ export default function TransactionApproval({ txId, amount, to, email, onApprove
     btnRed: { width: '100%', padding: 12, background: 'transparent', border: '1px solid rgba(255,68,102,0.4)', borderRadius: 8, color: '#ff4466', fontFamily: 'monospace', cursor: 'pointer', marginTop: 8, fontSize: '0.82rem' },
     error: { color: '#ff4466', fontSize: '0.72rem', textAlign: 'center' as const, marginTop: 8 },
     layers: { display: 'flex', gap: 4, marginBottom: 16 },
-    layerDot: (active: boolean, done: boolean) => ({ flex: 1, height: 3, borderRadius: 2, background: done ? '#00ff88' : active ? '#00b3f7' : 'rgba(255,255,255,0.1)' }),
+    layerDotBase: { flex: 1, height: 3, borderRadius: 2 },
   }
 
   const layerIndex = { totp: 0, phone: 1, email_otp: 2, biometric: 3, done: 4 }
@@ -181,7 +181,7 @@ export default function TransactionApproval({ txId, amount, to, email, onApprove
       {/* Progress bar */}
       <div style={s.layers}>
         {[0, 1, 2, 3].map(i => (
-          <div key={i} style={s.layerDot(i === currentIndex, i < currentIndex)} />
+          <div key={i} style={{ ...s.layerDotBase, background: i < currentIndex ? '#00ff88' : i === currentIndex ? '#00b3f7' : 'rgba(255,255,255,0.1)' }} />
         ))}
       </div>
 
