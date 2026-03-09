@@ -82,6 +82,7 @@
   transition: opacity 0.2s, transform 0.1s;
 }
 .btnPrimary:hover { opacity: 0.88; transform: translateY(-1px); }
+.btnPrimary:active { transform: translateY(0); }
 .btnSecondary {
   width: 100%;
   padding: 12px;
@@ -105,6 +106,12 @@
   cursor: pointer;
   padding: 8px 0;
   width: 100%;
+  text-align: center;
+}
+.btnGhost:hover { color: var(--text); }
+.gasNote {
+  font-size: 0.68rem;
+  color: var(--text-muted);
   text-align: center;
 }
 .input {
@@ -138,11 +145,6 @@
   font-size: 0.72rem;
   color: var(--text-muted);
   margin-top: 6px;
-}
-.gasNote {
-  font-size: 0.68rem;
-  color: var(--text-muted);
-  text-align: center;
 }
 .loginFooter {
   margin-top: 24px;
@@ -202,6 +204,8 @@
 .refreshBtn:hover { color: var(--cyan); }
 .logoutBtn:hover { color: var(--red); }
 .main { flex: 1; padding: 16px; max-width: 640px; margin: 0 auto; width: 100%; }
+
+/* Wallet card */
 .walletCard {
   background: linear-gradient(135deg, rgba(0,179,247,0.08) 0%, rgba(7,13,20,0.9) 100%);
   border: 1px solid var(--border-bright);
@@ -232,11 +236,15 @@
   font-size: 0.75rem;
   padding: 2px 4px;
   opacity: 0.6;
+  transition: opacity 0.2s;
 }
+.copyBtn:hover { opacity: 1; }
 .walletTotal { text-align: right; }
 .totalLabel { font-size: 0.6rem; color: var(--text-muted); letter-spacing: 0.1em; margin-bottom: 4px; }
 .totalAmount { font-size: 1.5rem; font-weight: 700; color: var(--cyan); }
 .loading { color: var(--text-muted); font-size: 0.9rem; }
+
+/* Goal bar */
 .goalSection { }
 .goalRow {
   display: flex;
@@ -258,6 +266,8 @@
   border-radius: 2px;
   transition: width 1s ease;
 }
+
+/* Emocoin */
 .emoSection { margin-bottom: 12px; }
 .emoCard {
   display: flex;
@@ -282,7 +292,11 @@
   font-family: var(--font-mono);
   font-size: 0.68rem;
   cursor: pointer;
+  transition: background 0.2s;
 }
+.claimBtn:hover { background: rgba(255,215,0,0.25); }
+
+/* Tabs */
 .tabs {
   display: flex;
   gap: 4px;
@@ -309,6 +323,9 @@
   color: var(--cyan);
   border: 1px solid var(--border);
 }
+.tabContent { }
+
+/* Token grid */
 .tokenGrid { display: flex; flex-direction: column; gap: 8px; }
 .tokenCard {
   display: flex;
@@ -318,7 +335,9 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 12px 14px;
+  transition: border-color 0.2s;
 }
+.tokenCard:hover { border-color: var(--border-bright); }
 .tokenLeft { display: flex; align-items: center; gap: 10px; }
 .tokenDot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .tokenDotSmall { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; }
@@ -340,6 +359,8 @@
 }
 .green { color: var(--green); }
 .red { color: var(--red); }
+
+/* Price table */
 .priceTable { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
 .priceHeader {
   display: grid;
@@ -369,6 +390,8 @@
   color: var(--red);
   margin-bottom: 10px;
 }
+
+/* History */
 .historySection { display: flex; flex-direction: column; gap: 8px; }
 .historyItem {
   display: flex;
@@ -394,6 +417,8 @@
   border: 1px dashed var(--border);
   border-radius: 10px;
 }
+
+/* Treasury */
 .treasurySection { display: flex; flex-direction: column; gap: 8px; }
 .treasuryCard {
   display: flex;
@@ -418,6 +443,8 @@
   font-size: 0.7rem;
   color: var(--green);
 }
+
+/* Footer */
 .footer {
   text-align: center;
   padding: 16px;
@@ -426,5 +453,3 @@
   letter-spacing: 0.1em;
   border-top: 1px solid var(--border);
 }
-
-
