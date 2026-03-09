@@ -1,4 +1,3 @@
-```tsx
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import styles from './page.module.css'
@@ -47,7 +46,6 @@ export default function TheWall() {
   const [priceError, setPriceError] = useState(false)
   const [hasBiometric, setHasBiometric] = useState(false)
 
-  // Check biometric availability
   useEffect(() => {
     const check = async () => {
       try {
@@ -72,7 +70,7 @@ export default function TheWall() {
   const fetchBalance = useCallback(async (address: string) => {
     try {
       const [ethRes, solRes] = await Promise.all([
-        fetch(`/api/balance?address=` + address),
+        fetch('/api/balance?address=' + address),
         fetch('/api/solana'),
       ])
       const ethData = await ethRes.json()
@@ -165,12 +163,16 @@ export default function TheWall() {
   const goalPct = Math.min((portfolioTotal / GOAL_USD) * 100, 100)
   const fmt = (n: number) => n >= 1000 ? '$' + (n / 1000).toFixed(1) + 'K' : '$' + n.toFixed(2)
   const fmtAddr = (a: string) => a.slice(0, 8) + '...' + a.slice(-6)
+  const walletLabel = user?.type === 'smart'
+    ? ('SMART WALLET ' + (user.twoFaMethod === 'biometric' ? '👆' : '🔢'))
+    : 'MAIN WALLET'
+  const goalWidth = Math.max(goalPct, 0.1) + '%'
 
   if (screen === 'login') {
     return (
       <div className={styles.loginWrap}>
         <div className={styles.loginCard}>
-          <div className={`${styles.logo} fade-up`}>
+          <div className={styles.logo + ' fade-up'}>
             <span className={styles.hexLogo}>⬡</span>
             <div>
               <div className={styles.logoTitle}>THE WALL</div>
@@ -178,7 +180,6 @@ export default function TheWall() {
             </div>
           </div>
 
-          {/* HOME */}
           {loginStep === 'home' && (
             <div className="fade-up-1">
               <p className={styles.loginDesc}>
@@ -202,7 +203,6 @@ export default function TheWall() {
             </div>
           )}
 
-          {/* EMAIL */}
           {loginStep === 'email' && (
             <div className="fade-up-1">
               <p className={styles.loginDesc}>Enter your email to continue.</p>
@@ -215,7 +215,6 @@ export default function TheWall() {
             </div>
           )}
 
-          {/* CHOOSE 2FA */}
           {loginStep === 'choose2fa' && (
             <div className="fade-up-1">
               <p className={styles.loginDesc}>
@@ -242,7 +241,6 @@ export default function TheWall() {
             </div>
           )}
 
-          {/* BIOMETRIC */}
           {loginStep === 'biometric' && (
             <div className="fade-up-1">
               <p className={styles.loginDesc}>
@@ -258,7 +256,6 @@ export default function TheWall() {
             </div>
           )}
 
-          {/* GOOGLE AUTHENTICATOR */}
           {loginStep === 'totp' && (
             <div className="fade-up-1">
               <p className={styles.loginDesc}>
@@ -278,9 +275,8 @@ export default function TheWall() {
             </div>
           )}
 
-          {/* CREATING */}
           {loginStep === 'creating' && (
-            <div className={`${styles.creating} fade-up-1`}>
+            <div className={styles.creating + ' fade-up-1'}>
               <div className={styles.spinner} />
               <p>Setting up your wallet...</p>
               <p className={styles.creatingNote}>No gas fees. No seed phrase.</p>
@@ -294,7 +290,7 @@ export default function TheWall() {
 
   return (
     <div className={styles.dashWrap}>
-      <header className={`${styles.header} fade-up`}>
+      <header className={styles.header + ' fade-up'}>
         <div className={styles.headerLeft}>
           <span className={styles.hexSmall}>⬡</span>
           <span className={styles.headerTitle}>THE WALL</span>
@@ -311,12 +307,10 @@ export default function TheWall() {
       </header>
 
       <main className={styles.main}>
-        <section className={`${styles.walletCard} fade-up-1`}>
+        <section className={styles.walletCard + ' fade-up-1'}>
           <div className={styles.walletTop}>
             <div>
-              <div className={styles.walletLabel}>
-                {user?.type === 'smart' ? `⚡ SMART WALLET · ${user.twoFaMethod === 'biometric' ? '👆' : '🔢'}` : '👁 MAIN WALLET'}
-              </div>
+              <div className={styles.walletLabel}>{walletLabel}</div>
               <div className={styles.walletAddr}>
                 {fmtAddr(user?.address || MAIN_WALLET)}
                 <button className={styles.copyBtn} onClick={() => navigator.clipboard.writeText(user?.address || MAIN_WALLET)}>📋</button>
@@ -336,12 +330,12 @@ export default function TheWall() {
               <span className={styles.goalPct}>{goalPct.toFixed(4)}%</span>
             </div>
             <div className={styles.goalBar}>
-              <div className={styles.goalFill} style={{ width: `${Math.max(goalPct, 0.1)}%` }} />
+              <div className={styles.goalFill} style={{ width: goalWidth }} />
             </div>
           </div>
         </section>
 
-        <section className={`${styles.emoSection} fade-up-2`}>
+        <section className={styles.emoSection + ' fade-up-2'}>
           <div className={styles.emoCard}>
             <span className={styles.emoIcon}>🪙</span>
             <div>
@@ -355,20 +349,27 @@ export default function TheWall() {
           </div>
         </section>
 
-        <div className={`${styles.tabs} fade-up-3`}>
+        <div className={styles.tabs + ' fade-up-3'}>
           {['portfolio','prices','history','treasury'].map(tab => (
-            <button key={tab} className={`${styles.tab} ${activeTab === tab ? styles.tabActive : ''}`} onClick={() => setActiveTab(tab)}>
-              {tab === 'portfolio' && '💼'}{tab === 'prices' && '📊'}{tab === 'history' && '📋'}{tab === 'treasury' && '🏛️'} {tab}
+            <button key={tab}
+              className={styles.tab + (activeTab === tab ? ' ' + styles.tabActive : '')}
+              onClick={() => setActiveTab(tab)}>
+              {tab === 'portfolio' && '💼'}
+              {tab === 'prices' && '📊'}
+              {tab === 'history' && '📋'}
+              {tab === 'treasury' && '🏛️'} {tab}
             </button>
           ))}
         </div>
 
-        <div className={`${styles.tabContent} fade-up-4`}>
+        <div className={styles.tabContent + ' fade-up-4'}>
           {activeTab === 'portfolio' && (
             <div className={styles.tokenGrid}>
               {TOKENS.map(token => {
                 const p = prices[token.symbol]
-                const bal = token.symbol === 'ETH' ? walletData?.ethBalance || 0 : token.symbol === 'SOL' ? walletData?.solBalance || 0 : 0
+                const bal = token.symbol === 'ETH' ? walletData?.ethBalance || 0
+                  : token.symbol === 'SOL' ? walletData?.solBalance || 0 : 0
+                const priceStr = p ? '$' + p.price.toLocaleString('en', { minimumFractionDigits:2, maximumFractionDigits:2 }) : null
                 return (
                   <div key={token.symbol} className={styles.tokenCard}>
                     <div className={styles.tokenLeft}>
@@ -380,8 +381,14 @@ export default function TheWall() {
                       </div>
                     </div>
                     <div className={styles.tokenRight}>
-                      <div className={styles.tokenPrice}>{p ? `$${p.price.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}` : <span className={styles.loading}>$···</span>}</div>
-                      {p && <div className={`${styles.tokenChange} ${p.change24h >= 0 ? styles.green : styles.red}`}>{p.change24h >= 0 ? '▲' : '▼'} {Math.abs(p.change24h).toFixed(2)}%</div>}
+                      <div className={styles.tokenPrice}>
+                        {priceStr ? priceStr : <span className={styles.loading}>$···</span>}
+                      </div>
+                      {p && (
+                        <div className={styles.tokenChange + ' ' + (p.change24h >= 0 ? styles.green : styles.red)}>
+                          {p.change24h >= 0 ? '▲' : '▼'} {Math.abs(p.change24h).toFixed(2)}%
+                        </div>
+                      )}
                       {bal > 0 && <div className={styles.tokenBal}>{bal.toFixed(4)} {token.symbol}</div>}
                       <div className={styles.tokenLive}><span className={styles.liveDot} />Live</div>
                     </div>
@@ -395,14 +402,18 @@ export default function TheWall() {
             <div>
               {priceError && <div className={styles.errorBanner}>⚠ Price feed unavailable.</div>}
               <div className={styles.priceTable}>
-                <div className={styles.priceHeader}><span>Asset</span><span>Price (USD)</span><span>24h Change</span></div>
+                <div className={styles.priceHeader}>
+                  <span>Asset</span><span>Price (USD)</span><span>24h Change</span>
+                </div>
                 {TOKENS.map(token => {
                   const p = prices[token.symbol]
+                  const priceStr = p ? '$' + p.price.toLocaleString('en', { minimumFractionDigits:2 }) : '···'
+                  const changeStr = p ? (p.change24h >= 0 ? '+' : '') + p.change24h.toFixed(2) + '%' : '···'
                   return (
                     <div key={token.symbol} className={styles.priceRow}>
                       <span><span className={styles.tokenDotSmall} style={{ background: token.color }} />{token.symbol}</span>
-                      <span className={styles.priceVal}>{p ? `$${p.price.toLocaleString('en',{minimumFractionDigits:2})}` : '···'}</span>
-                      <span className={p && p.change24h >= 0 ? styles.green : styles.red}>{p ? `${p.change24h >= 0 ? '+' : ''}${p.change24h.toFixed(2)}%` : '···'}</span>
+                      <span className={styles.priceVal}>{priceStr}</span>
+                      <span className={p && p.change24h >= 0 ? styles.green : styles.red}>{changeStr}</span>
                     </div>
                   )
                 })}
@@ -459,4 +470,3 @@ export default function TheWall() {
     </div>
   )
 }
-```
