@@ -163,8 +163,8 @@ export default function TheWall() {
   })()
 
   const goalPct = Math.min((portfolioTotal / GOAL_USD) * 100, 100)
-  const fmt = (n: number) => n >= 1000 ? `$${(n / 1000).toFixed(1)}K` : `$${n.toFixed(2)}`
-  const fmtAddr = (a: string) => `${a.slice(0, 8)}...${a.slice(-6)}`
+  const fmt = (n: number) => n >= 1000 ? '$' + (n / 1000).toFixed(1) + 'K' : '$' + n.toFixed(2)
+  const fmtAddr = (a: string) => a.slice(0, 8) + '...' + a.slice(-6)
 
   if (screen === 'login') {
     return (
