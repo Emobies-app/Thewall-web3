@@ -15,6 +15,7 @@ interface UserWallet {
   address: string
   type: 'smart' | 'external'
   email?: string
+  twoFaMethod?: 'biometric' | 'totp'
 }
 
 const MAIN_WALLET = '0xba24d47ef3f4e1000000000000000000f3f4e1'
@@ -34,15 +35,28 @@ const TOKENS = [
 
 export default function TheWall() {
   const [screen, setScreen] = useState<'login' | 'dashboard'>('login')
-  const [loginStep, setLoginStep] = useState<'home' | 'email' | 'otp' | 'creating'>('home')
+  const [loginStep, setLoginStep] = useState<'home' | 'email' | 'choose2fa' | 'biometric' | 'totp' | 'creating'>('home')
   const [email, setEmail] = useState('')
-  const [otp, setOtp] = useState('')
+  const [totpCode, setTotpCode] = useState('')
+  const [error, setError] = useState('')
   const [user, setUser] = useState<UserWallet | null>(null)
   const [prices, setPrices] = useState<Prices>({})
   const [walletData, setWalletData] = useState<WalletData | null>(null)
   const [activeTab, setActiveTab] = useState('portfolio')
   const [refreshing, setRefreshing] = useState(false)
   const [priceError, setPriceError] = useState(false)
+  const [hasBiometric, setHasBiometric] = useState(false)
+
+  // Check biometric availability
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+        setHasBiometric(available)
+      } catch { setHasBiometric(false) }
+    }
+    check()
+  }, [])
 
   const fetchPrices = useCallback(async () => {
     try {
@@ -73,18 +87,60 @@ export default function TheWall() {
     return () => clearInterval(interval)
   }, [fetchPrices])
 
-  const handleEmailLogin = async () => {
+  const handleEmailContinue = () => {
     if (!email.includes('@')) return
-    setLoginStep('otp')
+    setError('')
+    setLoginStep('choose2fa')
   }
 
-  const handleOtpVerify = async () => {
-    if (otp.length < 4) return
-    setLoginStep('creating')
-    await new Promise(r => setTimeout(r, 2000))
-    setUser({ address: MAIN_WALLET, type: 'smart', email })
-    await fetchBalance(MAIN_WALLET)
-    setScreen('dashboard')
+  const handleBiometricAuth = async () => {
+    setError('')
+    try {
+      const challenge = new Uint8Array(32)
+      window.crypto.getRandomValues(challenge)
+      const credential = await navigator.credentials.get({
+        publicKey: {
+          challenge,
+          rpId: window.location.hostname,
+          allowCredentials: [],
+          userVerification: 'required',
+          timeout: 60000,
+        }
+      } as CredentialRequestOptions)
+      if (credential) {
+        setLoginStep('creating')
+        await new Promise(r => setTimeout(r, 1500))
+        setUser({ address: MAIN_WALLET, type: 'smart', email, twoFaMethod: 'biometric' })
+        await fetchBalance(MAIN_WALLET)
+        setScreen('dashboard')
+      }
+    } catch {
+      setError('Biometric failed. Try again or use Google Authenticator.')
+    }
+  }
+
+  const handleTotpAuth = async () => {
+    if (totpCode.length !== 6) return
+    setError('')
+    try {
+      const res = await fetch('/api/auth/totp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'totp', token: totpCode })
+      })
+      const data = await res.json()
+      if (data.valid) {
+        setLoginStep('creating')
+        await new Promise(r => setTimeout(r, 1500))
+        setUser({ address: MAIN_WALLET, type: 'smart', email, twoFaMethod: 'totp' })
+        await fetchBalance(MAIN_WALLET)
+        setScreen('dashboard')
+      } else {
+        setError('Invalid code. Try again.')
+      }
+    } catch {
+      setError('Verification failed.')
+    }
   }
 
   const handleGuestView = () => {
@@ -122,45 +178,111 @@ export default function TheWall() {
             </div>
           </div>
 
+          {/* HOME */}
           {loginStep === 'home' && (
             <div className="fade-up-1">
-              <p className={styles.loginDesc}>Gasless smart wallet. No seed phrase.<br />Powered by Alchemy Account Kit.</p>
+              <p className={styles.loginDesc}>
+                Gasless smart wallet. No seed phrase.<br />
+                Powered by Alchemy Account Kit.
+              </p>
               <div className={styles.featureRow}>
-                {[['⬡','No Seed Phrase'],['⚡','Gasless Txns'],['🔗','6 Chains']].map(([icon,label]) => (
+                {[['⬡','No Seed Phrase'],['⚡','Gasless Txns'],['🔒','2FA Secured']].map(([icon,label]) => (
                   <div key={label} className={styles.featureChip}><span>{icon}</span><span>{label}</span></div>
                 ))}
               </div>
-              <button className={styles.btnPrimary} onClick={() => setLoginStep('email')}>Connect with Email</button>
-              <button className={styles.btnSecondary} onClick={handleGuestView}>View Portfolio (Guest)</button>
-              <div className={styles.gasNote}>✅ Gas fees sponsored by Emobies-Sponsorship-v1 · 54+ networks</div>
+              <button className={styles.btnPrimary} onClick={() => setLoginStep('email')}>
+                Sign Up / Login
+              </button>
+              <button className={styles.btnSecondary} onClick={handleGuestView}>
+                View Portfolio (Guest)
+              </button>
+              <div className={styles.gasNote}>
+                ✅ Gas fees sponsored by Emobies-Sponsorship-v1 · 54+ networks
+              </div>
             </div>
           )}
 
+          {/* EMAIL */}
           {loginStep === 'email' && (
             <div className="fade-up-1">
-              <p className={styles.loginDesc}>Enter your email to receive a login code.</p>
-              <input className={styles.input} type="email" placeholder="you@example.com" value={email}
-                onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleEmailLogin()} autoFocus />
-              <button className={styles.btnPrimary} onClick={handleEmailLogin}>Send Code</button>
+              <p className={styles.loginDesc}>Enter your email to continue.</p>
+              <input className={styles.input} type="email" placeholder="you@example.com"
+                value={email} onChange={e => setEmail(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleEmailContinue()} autoFocus />
+              {error && <p style={{ color:'#ff4466', fontSize:'0.72rem', marginBottom:8 }}>{error}</p>}
+              <button className={styles.btnPrimary} onClick={handleEmailContinue}>Continue →</button>
               <button className={styles.btnGhost} onClick={() => setLoginStep('home')}>← Back</button>
             </div>
           )}
 
-          {loginStep === 'otp' && (
+          {/* CHOOSE 2FA */}
+          {loginStep === 'choose2fa' && (
             <div className="fade-up-1">
-              <p className={styles.loginDesc}>Code sent to <strong>{email}</strong></p>
-              <input className={styles.input} type="text" placeholder="Enter 6-digit code" value={otp}
-                onChange={e => setOtp(e.target.value.replace(/\D/g,'').slice(0,6))}
-                onKeyDown={e => e.key === 'Enter' && handleOtpVerify()} maxLength={6} autoFocus />
-              <button className={styles.btnPrimary} onClick={handleOtpVerify}>Verify & Create Wallet</button>
+              <p className={styles.loginDesc}>
+                <strong style={{ color:'#00b3f7' }}>Choose your 2FA method</strong><br />
+                This will be used every time you login
+              </p>
+              {hasBiometric && (
+                <button className={styles.btnPrimary} onClick={() => { setLoginStep('biometric'); handleBiometricAuth() }}>
+                  👆 Fingerprint / Face ID
+                </button>
+              )}
+              <button
+                className={hasBiometric ? styles.btnSecondary : styles.btnPrimary}
+                onClick={() => setLoginStep('totp')}
+              >
+                🔢 Google Authenticator
+              </button>
+              {!hasBiometric && (
+                <div style={{ fontSize:'0.68rem', color:'rgba(232,244,253,0.3)', textAlign:'center', marginTop:8 }}>
+                  Biometric not available on this device
+                </div>
+              )}
               <button className={styles.btnGhost} onClick={() => setLoginStep('email')}>← Back</button>
             </div>
           )}
 
+          {/* BIOMETRIC */}
+          {loginStep === 'biometric' && (
+            <div className="fade-up-1">
+              <p className={styles.loginDesc}>
+                👆 <strong>Biometric Verification</strong><br />
+                Use Face ID or Fingerprint
+              </p>
+              <div style={{ textAlign:'center', fontSize:'3rem', margin:'20px 0' }}>👆</div>
+              <button className={styles.btnPrimary} onClick={handleBiometricAuth}>
+                👆 Authenticate
+              </button>
+              {error && <p style={{ color:'#ff4466', fontSize:'0.72rem', textAlign:'center', marginTop:8 }}>{error}</p>}
+              <button className={styles.btnGhost} onClick={() => setLoginStep('choose2fa')}>← Back</button>
+            </div>
+          )}
+
+          {/* GOOGLE AUTHENTICATOR */}
+          {loginStep === 'totp' && (
+            <div className="fade-up-1">
+              <p className={styles.loginDesc}>
+                🔢 <strong>Google Authenticator</strong><br />
+                Enter your 6-digit code
+              </p>
+              <input className={styles.input} type="text" maxLength={6}
+                placeholder="000000" value={totpCode}
+                onChange={e => setTotpCode(e.target.value.replace(/\D/g,'').slice(0,6))}
+                onKeyDown={e => e.key === 'Enter' && handleTotpAuth()}
+                autoFocus />
+              {error && <p style={{ color:'#ff4466', fontSize:'0.72rem', marginBottom:8 }}>{error}</p>}
+              <button className={styles.btnPrimary} onClick={handleTotpAuth} disabled={totpCode.length !== 6}>
+                Verify →
+              </button>
+              <button className={styles.btnGhost} onClick={() => setLoginStep('choose2fa')}>← Back</button>
+            </div>
+          )}
+
+          {/* CREATING */}
           {loginStep === 'creating' && (
             <div className={`${styles.creating} fade-up-1`}>
               <div className={styles.spinner} />
-              <p>Creating your smart wallet...</p>
+              <p>Setting up your wallet...</p>
               <p className={styles.creatingNote}>No gas fees. No seed phrase.</p>
             </div>
           )}
@@ -184,7 +306,7 @@ export default function TheWall() {
           <button className={styles.refreshBtn} onClick={handleRefresh} disabled={refreshing}>
             <span style={{ display:'inline-block', animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }}>↻</span>
           </button>
-          <button className={styles.logoutBtn} onClick={() => setScreen('login')}>⏻</button>
+          <button className={styles.logoutBtn} onClick={() => { setScreen('login'); setLoginStep('home') }}>⏻</button>
         </div>
       </header>
 
@@ -192,7 +314,9 @@ export default function TheWall() {
         <section className={`${styles.walletCard} fade-up-1`}>
           <div className={styles.walletTop}>
             <div>
-              <div className={styles.walletLabel}>{user?.type === 'smart' ? '⚡ SMART WALLET' : '👁 MAIN WALLET'}</div>
+              <div className={styles.walletLabel}>
+                {user?.type === 'smart' ? `⚡ SMART WALLET · ${user.twoFaMethod === 'biometric' ? '👆' : '🔢'}` : '👁 MAIN WALLET'}
+              </div>
               <div className={styles.walletAddr}>
                 {fmtAddr(user?.address || MAIN_WALLET)}
                 <button className={styles.copyBtn} onClick={() => navigator.clipboard.writeText(user?.address || MAIN_WALLET)}>📋</button>
