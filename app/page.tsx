@@ -72,7 +72,7 @@ export default function TheWall() {
   const fetchBalance = useCallback(async (address: string) => {
     try {
       const [ethRes, solRes] = await Promise.all([
-        fetch(`/api/balance?address=${address}`)
+        fetch(`/api/balance?address=` + address),
         fetch('/api/solana'),
       ])
       const ethData = await ethRes.json()
