@@ -79,7 +79,7 @@ export default function TheWall() {
       const ethData = await ethRes.json()
       const solData = await solRes.json()
       const okxData = await okxRes.json()
-      setWalletData({ ...ethData, solBalance: solData.solBalance || 0, okxBalance: okxData.ethBalance || 0 })
+      setWalletData({ ...ethData, solBalance: solData.solBalance || 0, okxBalance: okxData.ethBalance || 0 } as WalletData)
     } catch (e) { console.error('Balance fetch failed:', e) }
   }, [])
 
