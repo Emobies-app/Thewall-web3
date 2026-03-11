@@ -8,6 +8,7 @@ interface WalletData {
   address: string
   ethBalance: number
   solBalance?: number
+  okxBalance?: number
   tokenBalances: Array<{ contractAddress: string; tokenBalance: string }>
 }
 interface UserWallet {
