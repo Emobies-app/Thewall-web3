@@ -8,7 +8,6 @@ interface WalletData {
   address: string
   ethBalance: number
   solBalance?: number
-  okxBalance?: number
   tokenBalances: Array<{ contractAddress: string; tokenBalance: string }>
 }
 interface UserWallet {
@@ -19,7 +18,6 @@ interface UserWallet {
 }
 
 const MAIN_WALLET = '0xba24d47ef3f4e1000000000000000000f3f4e1'
-const OKX_WALLET = '0xfae46f94ee7b2acb497cecaff6cff17f621c693d'
 const TREASURY = '0xecbdebb62d636808a3e94183070585814127393d'
 const SOL_WALLET = '5auZoWJxJodSU8dwgKmAfmphv5Z9Su3HAzEdLz1EUZs7'
 const GOAL_USD = 6_200_000
@@ -74,12 +72,10 @@ export default function TheWall() {
       const [ethRes, solRes, okxRes] = await Promise.all([
         fetch('/api/balance?address=' + address),
         fetch('/api/solana'),
-        fetch('/api/balance?address=' + OKX_WALLET),
       ])
       const ethData = await ethRes.json()
       const solData = await solRes.json()
-      const okxData = await okxRes.json()
-      setWalletData({ ...ethData, solBalance: solData.solBalance || 0, okxBalance: okxData.ethBalance || 0 } as WalletData)
+      setWalletData({ ...ethData, solBalance: solData.solBalance || 0 })
     } catch (e) { console.error('Balance fetch failed:', e) }
   }, [])
 
@@ -162,7 +158,7 @@ export default function TheWall() {
     const sol = (walletData?.solBalance || 0) * (prices.SOL?.price || 0)
     const okx = (walletData?.okxBalance || 0) * (prices.ETH?.price || 0)
     const emc = EMOCOIN.balance * EMOCOIN.priceUsd
-    return eth + sol + okx + emc
+    return eth + sol + emc
   })()
 
   const goalPct = Math.min((portfolioTotal / GOAL_USD) * 100, 100)
