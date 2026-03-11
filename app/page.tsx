@@ -18,6 +18,7 @@ interface UserWallet {
 }
 
 const MAIN_WALLET = '0xba24d47ef3f4e1000000000000000000f3f4e1'
+const OKX_WALLET = '0xfae46f94ee7b2acb497cecaff6cff17f621c693d'
 const TREASURY = '0xecbdebb62d636808a3e94183070585814127393d'
 const SOL_WALLET = '5auZoWJxJodSU8dwgKmAfmphv5Z9Su3HAzEdLz1EUZs7'
 const GOAL_USD = 6_200_000
@@ -69,13 +70,15 @@ export default function TheWall() {
 
   const fetchBalance = useCallback(async (address: string) => {
     try {
-      const [ethRes, solRes] = await Promise.all([
+      const [ethRes, solRes, okxRes] = await Promise.all([
         fetch('/api/balance?address=' + address),
         fetch('/api/solana'),
+        fetch('/api/balance?address=' + OKX_WALLET),
       ])
       const ethData = await ethRes.json()
       const solData = await solRes.json()
-      setWalletData({ ...ethData, solBalance: solData.solBalance || 0 })
+      const okxData = await okxRes.json()
+      setWalletData({ ...ethData, solBalance: solData.solBalance || 0, okxBalance: okxData.ethBalance || 0 })
     } catch (e) { console.error('Balance fetch failed:', e) }
   }, [])
 
