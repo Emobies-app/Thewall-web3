@@ -21,3 +21,4 @@ export async function GET() {
     return NextResponse.json({ error: 'Portfolio fetch failed' }, { status: 500 })
   }
 }
+// portfolio v2
