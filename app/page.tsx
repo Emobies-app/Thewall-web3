@@ -471,5 +471,5 @@ export default function TheWall() {
     </div>
   )
 }
-// okx fix
+
 
