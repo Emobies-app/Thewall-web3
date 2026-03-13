@@ -156,7 +156,6 @@ export default function TheWall() {
   const portfolioTotal = (() => {
     const eth = (walletData?.ethBalance || 0) * (prices.ETH?.price || 0)
     const sol = (walletData?.solBalance || 0) * (prices.SOL?.price || 0)
-    const okx = (walletData?.okxBalance || 0) * (prices.ETH?.price || 0)
     const emc = EMOCOIN.balance * EMOCOIN.priceUsd
     return eth + sol + emc
   })()
@@ -471,5 +470,3 @@ export default function TheWall() {
     </div>
   )
 }
-
-
