@@ -401,6 +401,16 @@ export default function TheWall() {
       </header>
 
       {/* Search Modal */}
+      // Send state
+const [sendOpen, setSendOpen] = useState(false)
+const [sendTab, setSendTab] = useState<'send'|'receive'>('send')
+const [sendChain, setSendChain] = useState<'ETH'|'SOL'>('ETH')
+const [sendTo, setSendTo] = useState('')
+const [sendAmount, setSendAmount] = useState('')
+const [sendLoading, setSendLoading] = useState(false)
+const [sendError, setSendError] = useState('')
+const [sendSuccess, setSendSuccess] = useState('')
+const [addressBook, setAddressBook] = useState<{name:string,address:string}[]>([])
       {searchOpen && (
         <div className={styles.searchOverlay} onClick={() => setSearchOpen(false)}>
           <div className={styles.searchModal} onClick={e => e.stopPropagation()}>
