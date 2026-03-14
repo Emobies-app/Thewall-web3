@@ -16,6 +16,18 @@ interface UserWallet {
   email?: string
   twoFaMethod?: 'biometric' | 'totp'
 }
+interface SearchResult {
+  address: string
+  ethBalance: number
+  ethUsd: number
+  solBalance: number
+  solUsd: number
+  tokenCount: number
+  nftCount: number
+  txCount: number
+  loading: boolean
+  error: string
+}
 
 const MAIN_WALLET = '0xba24d47ef3f4e1000000000000000000f3f4e1'
 const TREASURY = '0xecbdebb62d636808a3e94183070585814127393d'
@@ -45,6 +57,12 @@ export default function TheWall() {
   const [refreshing, setRefreshing] = useState(false)
   const [priceError, setPriceError] = useState(false)
   const [hasBiometric, setHasBiometric] = useState(false)
+
+  // Search state
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResult, setSearchResult] = useState<SearchResult | null>(null)
+  const [searchHistory, setSearchHistory] = useState<string[]>([])
 
   useEffect(() => {
     const check = async () => {
@@ -78,6 +96,79 @@ export default function TheWall() {
       setWalletData({ ...ethData, solBalance: solData.solBalance || 0 })
     } catch (e) { console.error('Balance fetch failed:', e) }
   }, [])
+
+  // Search wallet
+  const searchWallet = async (addr: string) => {
+    const address = addr.trim()
+    if (!address || address.length < 10) return
+
+    setSearchResult({
+      address, ethBalance: 0, ethUsd: 0,
+      solBalance: 0, solUsd: 0,
+      tokenCount: 0, nftCount: 0, txCount: 0,
+      loading: true, error: ''
+    })
+
+    // Save to history
+    setSearchHistory(prev => [address, ...prev.filter(a => a !== address)].slice(0, 5))
+
+    try {
+      const ethPrice = prices.ETH?.price || 0
+      const solPrice = prices.SOL?.price || 0
+
+      // ETH balance via public RPC
+      let ethBalance = 0
+      let tokenCount = 0
+      let nftCount = 0
+      let txCount = 0
+
+      if (address.startsWith('0x')) {
+        try {
+          const rpcRes = await fetch('https://eth.llamarpc.com', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: '2.0', id: 1,
+              method: 'eth_getBalance',
+              params: [address, 'latest']
+            })
+          })
+          const rpcData = await rpcRes.json()
+          if (rpcData.result) {
+            ethBalance = parseInt(rpcData.result, 16) / 1e18
+          }
+
+          // TX count
+          const txRes = await fetch('https://eth.llamarpc.com', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: '2.0', id: 2,
+              method: 'eth_getTransactionCount',
+              params: [address, 'latest']
+            })
+          })
+          const txData = await txRes.json()
+          if (txData.result) txCount = parseInt(txData.result, 16)
+        } catch { /* RPC failed */ }
+      }
+
+      setSearchResult({
+        address,
+        ethBalance,
+        ethUsd: ethBalance * ethPrice,
+        solBalance: 0,
+        solUsd: 0,
+        tokenCount,
+        nftCount,
+        txCount,
+        loading: false,
+        error: ''
+      })
+    } catch {
+      setSearchResult(prev => prev ? { ...prev, loading: false, error: 'Failed to fetch wallet data' } : null)
+    }
+  }
 
   useEffect(() => {
     fetchPrices()
@@ -296,15 +387,117 @@ export default function TheWall() {
           <span className={styles.headerTitle}>THE WALL</span>
         </div>
         <div className={styles.headerRight}>
+          {/* Search Icon */}
+          <button className={styles.searchIconBtn} onClick={() => setSearchOpen(true)} title="Search wallet">
+            🔍
+          </button>
           <span className={styles.chainBadge}>ETH</span>
           <span className={styles.chainBadge}>SOL</span>
-          <span className={styles.chainBadge}>BNB</span>
           <button className={styles.refreshBtn} onClick={handleRefresh} disabled={refreshing}>
             <span style={{ display:'inline-block', animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }}>↻</span>
           </button>
           <button className={styles.logoutBtn} onClick={() => { setScreen('login'); setLoginStep('home') }}>⏻</button>
         </div>
       </header>
+
+      {/* Search Modal */}
+      {searchOpen && (
+        <div className={styles.searchOverlay} onClick={() => setSearchOpen(false)}>
+          <div className={styles.searchModal} onClick={e => e.stopPropagation()}>
+            <div className={styles.searchHeader}>
+              <span className={styles.searchTitle}>🔍 Wallet Search</span>
+              <button className={styles.searchClose} onClick={() => { setSearchOpen(false); setSearchResult(null); setSearchQuery('') }}>✕</button>
+            </div>
+
+            <div className={styles.searchInputRow}>
+              <input
+                className={styles.searchInput}
+                placeholder="Enter ETH/SOL wallet address..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && searchWallet(searchQuery)}
+                autoFocus
+              />
+              <button className={styles.searchBtn} onClick={() => searchWallet(searchQuery)}>→</button>
+            </div>
+
+            {/* Search History */}
+            {!searchResult && searchHistory.length > 0 && (
+              <div className={styles.searchHistory}>
+                <div className={styles.searchHistoryLabel}>Recent searches</div>
+                {searchHistory.map(addr => (
+                  <div key={addr} className={styles.searchHistoryItem} onClick={() => { setSearchQuery(addr); searchWallet(addr) }}>
+                    <span className={styles.historyIcon}>⬡</span>
+                    <span className={styles.historyAddr}>{addr.slice(0,10)}...{addr.slice(-8)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Search Result */}
+            {searchResult && (
+              <div className={styles.searchResult}>
+                {searchResult.loading ? (
+                  <div className={styles.searchLoading}>
+                    <div className={styles.spinner} />
+                    <span>Fetching wallet data...</span>
+                  </div>
+                ) : searchResult.error ? (
+                  <div className={styles.searchError}>⚠ {searchResult.error}</div>
+                ) : (
+                  <>
+                    <div className={styles.searchAddr}>
+                      {searchResult.address.slice(0,10)}...{searchResult.address.slice(-8)}
+                      <button className={styles.copyBtn} onClick={() => navigator.clipboard.writeText(searchResult.address)}>📋</button>
+                    </div>
+
+                    <div className={styles.searchCards}>
+                      <div className={styles.searchCard}>
+                        <div className={styles.searchCardLabel}>ETH Balance</div>
+                        <div className={styles.searchCardValue} style={{ color:'#627eea' }}>
+                          {searchResult.ethBalance.toFixed(4)} ETH
+                        </div>
+                        <div className={styles.searchCardUsd}>${searchResult.ethUsd.toFixed(2)}</div>
+                      </div>
+                      <div className={styles.searchCard}>
+                        <div className={styles.searchCardLabel}>SOL Balance</div>
+                        <div className={styles.searchCardValue} style={{ color:'#9945ff' }}>
+                          {searchResult.solBalance.toFixed(4)} SOL
+                        </div>
+                        <div className={styles.searchCardUsd}>${searchResult.solUsd.toFixed(2)}</div>
+                      </div>
+                      <div className={styles.searchCard}>
+                        <div className={styles.searchCardLabel}>Transactions</div>
+                        <div className={styles.searchCardValue}>{searchResult.txCount}</div>
+                        <div className={styles.searchCardUsd}>total txns</div>
+                      </div>
+                      <div className={styles.searchCard}>
+                        <div className={styles.searchCardLabel}>Total Value</div>
+                        <div className={styles.searchCardValue} style={{ color:'#00e5ff' }}>
+                          ${(searchResult.ethUsd + searchResult.solUsd).toFixed(2)}
+                        </div>
+                        <div className={styles.searchCardUsd}>USD</div>
+                      </div>
+                    </div>
+
+                    <button
+                      className={styles.searchViewBtn}
+                      onClick={() => {
+                        setUser({ address: searchResult.address, type: 'external' })
+                        fetchBalance(searchResult.address)
+                        setSearchOpen(false)
+                        setSearchResult(null)
+                      }}
+                    >
+                      View Full Portfolio →
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <main className={styles.main}>
         <section className={styles.walletCard + ' fade-up-1'}>
