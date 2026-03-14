@@ -29,6 +29,39 @@ interface SearchResult {
   error: string
 }
 
+nst handleSend = async () => {
+  if (!sendTo || !sendAmount) return
+  setSendLoading(true)
+  setSendError('')
+  setSendSuccess('')
+  try {
+    const res = await fetch('/api/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chain: sendChain,
+        to: sendTo,
+        amount: sendAmount,
+        from: user?.address || MAIN_WALLET
+      })
+    })
+    const data = await res.json()
+    if (data.success) {
+      setSendSuccess(`Transaction prepared! ${sendAmount} ${sendChain} → ${sendTo.slice(0,8)}...`)
+      setSendAmount('')
+      setSendTo('')
+    } else {
+      setSendError(data.error || 'Send failed')
+    }
+  } catch {
+    setSendError('Network error. Try again.')
+  }
+  setSendLoading(false)
+}
+
+const handleQRScan = () => {
+  setSendError('QR scan: Use camera app to scan wallet QR, then paste address above.')
+}
 const MAIN_WALLET = '0xba24d47ef3f4e1000000000000000000f3f4e1'
 const TREASURY = '0xecbdebb62d636808a3e94183070585814127393d'
 const SOL_WALLET = '5auZoWJxJodSU8dwgKmAfmphv5Z9Su3HAzEdLz1EUZs7'
