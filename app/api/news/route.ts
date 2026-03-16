@@ -3,12 +3,20 @@ import { NextResponse } from 'next/server'
 export async function GET() {
   try {
     const key = process.env.CRYPTOPANIC_API_KEY
-    if (!key) return NextResponse.json({ news: [] })
+
+    if (!key) {
+      return NextResponse.json({ news: [], error: 'No API key' })
+    }
 
     const res = await fetch(
       `https://cryptopanic.com/api/v1/posts/?auth_token=${key}&public=true&kind=news&filter=hot`,
-      { next: { revalidate: 300 } }
+      { cache: 'no-store' }
     )
+
+    if (!res.ok) {
+      return NextResponse.json({ news: [], error: `API error: ${res.status}` })
+    }
+
     const data = await res.json()
 
     const news = (data.results || []).slice(0, 20).map((item: {
@@ -29,7 +37,7 @@ export async function GET() {
     }))
 
     return NextResponse.json({ news })
-  } catch {
-    return NextResponse.json({ news: [] })
+  } catch (e) {
+    return NextResponse.json({ news: [], error: String(e) })
   }
 }
