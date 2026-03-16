@@ -357,6 +357,7 @@ export default function TheWall() {
           <button onClick={handleSwap} disabled={swap.loading||!swap.amount||!swap.estimatedOut} style={{width:'100%',padding:'14px',background:swap.loading||!swap.amount?'var(--bg3)':'linear-gradient(135deg,#627eea,#9945ff)',border:'none',borderRadius:10,color:'#fff',...s.mono,fontSize:'0.9rem',fontWeight:700,cursor:swap.loading||!swap.amount?'not-allowed':'pointer'}}>{swap.loading?'⏳ Swapping...':`🔄 Swap ${swap.fromToken} → ${swap.toToken}`}</button>
           <div style={{textAlign:'center',fontSize:'0.62rem',...s.muted,marginTop:10}}>UniSwap V3 · Gasless ⚡ · TheWall Universal 🦋</div>
         </div>}
+        
         {/* MARKETS */}
         {bottomTab==='markets'&&<div>
           <div style={{display:'flex',gap:8,marginBottom:16}}>{(['charts','news','alerts']as const).map(t=><button key={t} onClick={()=>setMarketsTab(t)} style={{flex:1,padding:'10px',border:'1px solid',borderColor:marketsTab===t?'var(--cyan)':'var(--border)',borderRadius:8,background:marketsTab===t?'var(--cyan-glow)':'var(--bg2)',color:marketsTab===t?'var(--cyan)':'var(--text-muted)',...s.mono,fontSize:'0.72rem',cursor:'pointer'}}>{t==='charts'?'📊 Charts':t==='news'?'📰 News':'🔔 Alerts'}</button>)}</div>
