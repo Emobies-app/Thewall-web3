@@ -10,10 +10,21 @@ interface Approval {
 
 const pending = new Map<string, Approval>()
 
-// Create new transaction approval request
 export async function POST(request: Request) {
   try {
-    const { txId, action, email, amount, to } = await request.json()
+    const body = await request.json()
+
+    // ── Alchemy Gas Manager sponsorship check ──
+    // Alchemy calls this endpoint to verify sponsorship eligibility
+    if (body.userOperation || body.entryPoint) {
+      return NextResponse.json({
+        sponsorshipPolicyId: process.env.ALCHEMY_GAS_POLICY_ID,
+      })
+    }
+
+    // ── Regular transaction approval ──
+    const { txId, action, email, amount, to } = body
+
     if (!txId) return NextResponse.json({ error: 'txId required' }, { status: 400 })
 
     if (action === 'create') {
@@ -30,11 +41,13 @@ export async function POST(request: Request) {
     if (action === 'approved' || action === 'rejected') {
       const existing = pending.get(txId)
       if (!existing) return NextResponse.json({ error: 'TX not found' }, { status: 404 })
+
       // Check 5 min expiry
       if (Date.now() - existing.timestamp > 5 * 60 * 1000) {
         pending.delete(txId)
         return NextResponse.json({ error: 'TX expired' }, { status: 400 })
       }
+
       pending.set(txId, { ...existing, status: action })
       return NextResponse.json({ success: true, txId, status: action })
     }
@@ -50,12 +63,15 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const txId = searchParams.get('txId')
   if (!txId) return NextResponse.json({ error: 'txId required' }, { status: 400 })
+
   const approval = pending.get(txId)
   if (!approval) return NextResponse.json({ status: 'not_found' })
+
   // Check expiry
   if (Date.now() - approval.timestamp > 5 * 60 * 1000) {
     pending.delete(txId)
     return NextResponse.json({ status: 'expired' })
   }
+
   return NextResponse.json({ txId, ...approval })
 }
