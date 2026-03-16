@@ -9,7 +9,7 @@ export async function GET() {
     }
 
     const res = await fetch(
-      `https://cryptopanic.com/api/v1/posts/?auth_token=${key}&public=true&kind=news&filter=hot`,
+      `https://cryptopanic.com/api/free/v1/posts/?auth_token=${key}&public=true`,
       { cache: 'no-store' }
     )
 
