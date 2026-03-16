@@ -347,7 +347,6 @@ export default function TheWall() {
 
         {/* TRADE */}
         {bottomTab==='trade'&&<div>
-        {bottomTab==='trade'&&<div>
   <appkit-button />                    ← NEW!
   <div style={{display:'flex',gap:8... ← tabs
           <div style={{display:'flex',gap:8,marginBottom:16}}>{(['swap','send','receive']as const).map(t=><button key={t} onClick={()=>{if(t!=='swap'){setSendOpen(true);setSendTab(t as 'send'|'receive')}}} style={{flex:1,padding:'10px',border:'1px solid var(--border)',borderRadius:8,background:t==='swap'?'var(--cyan-glow)':'var(--bg2)',color:t==='swap'?'var(--cyan)':'var(--text-muted)',...s.mono,fontSize:'0.75rem',cursor:'pointer'}}>{t==='swap'?'🔄 Swap':t==='send'?'📤 Send':'📥 Receive'}</button>)}</div>
