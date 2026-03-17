@@ -1,283 +1,401 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../widgets/thewall_ultimate_logo.dart';
 
-class TheWallUltimateLogo extends StatefulWidget {
-  final double size;
-  const TheWallUltimateLogo({super.key, this.size = 250});
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
 
   @override
-  State<TheWallUltimateLogo> createState() => _TheWallUltimateLogoState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _TheWallUltimateLogoState extends State<TheWallUltimateLogo>
-    with TickerProviderStateMixin {
-  late AnimationController _pulseController;
-  late AnimationController _scanController;
-  late AnimationController _rotateController;
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
+  final _emailController    = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading    = false;
+  bool _obscurePass  = true;
+  late AnimationController _fadeController;
+  late Animation<double>   _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
-    _pulseController = AnimationController(
+    _fadeController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2000),
-    )..repeat(reverse: true);
-
-    _scanController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 3000),
-    )..repeat();
-
-    _rotateController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 20),
-    )..repeat();
+      duration: const Duration(milliseconds: 1200),
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeInOut,
+    );
+    _fadeController.forward();
   }
 
   @override
   void dispose() {
-    _pulseController.dispose();
-    _scanController.dispose();
-    _rotateController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _fadeController.dispose();
     super.dispose();
+  }
+
+  void _handleLogin() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter email and password'),
+          backgroundColor: Color(0xFF627EEA),
+        ),
+      );
+      return;
+    }
+    setState(() => _isLoading = true);
+    await Future.delayed(const Duration(seconds: 2));
+    setState(() => _isLoading = false);
+    // TODO: Add real auth logic
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: Listenable.merge([_pulseController, _scanController, _rotateController]),
-      builder: (context, child) {
-        return CustomPaint(
-          size: Size(widget.size, widget.size),
-          painter: UltimateLogoPainter(
-            pulse:  _pulseController.value,
-            scan:   _scanController.value,
-            rotate: _rotateController.value,
+    return Scaffold(
+      backgroundColor: const Color(0xFF050A14),
+      body: SafeArea(
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 24),
+
+                // â”€â”€ LOGO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                RepaintBoundary(
+                  child: TheWallUltimateLogo(size: 180),
+                ),
+
+                const SizedBox(height: 20),
+
+                // â”€â”€ APP NAME â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                const Text(
+                  'EMOWALL AI',
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF00E5FF),
+                    letterSpacing: 6,
+                    shadows: [
+                      Shadow(
+                        blurRadius: 12,
+                        color: Color(0xFF00E5FF),
+                        offset: Offset.zero,
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 6),
+
+                const Text(
+                  'World\'s First Multi-Generational AI Safety Platform',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 10,
+                    color: Color(0xFF627EEA),
+                    letterSpacing: 1,
+                  ),
+                ),
+
+                const SizedBox(height: 36),
+
+                // â”€â”€ EMAIL FIELD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                _buildLabel('EMAIL'),
+                const SizedBox(height: 6),
+                _buildTextField(
+                  controller: _emailController,
+                  hint: 'you@example.com',
+                  icon: Icons.email_outlined,
+                  keyboardType: TextInputType.emailAddress,
+                ),
+
+                const SizedBox(height: 16),
+
+                // â”€â”€ PASSWORD FIELD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                _buildLabel('PASSWORD'),
+                const SizedBox(height: 6),
+                _buildTextField(
+                  controller: _passwordController,
+                  hint: 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢',
+                  icon: Icons.lock_outline,
+                  obscure: _obscurePass,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePass
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      color: const Color(0xFF627EEA),
+                      size: 20,
+                    ),
+                    onPressed: () =>
+                        setState(() => _obscurePass = !_obscurePass),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // Forgot password
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {},
+                    child: const Text(
+                      'Forgot password?',
+                      style: TextStyle(
+                        color: Color(0xFF627EEA),
+                        fontSize: 12,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // â”€â”€ LOGIN BUTTON â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _handleLogin,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: const BorderSide(
+                          color: Color(0xFF00E5FF),
+                          width: 1.5,
+                        ),
+                      ),
+                    ).copyWith(
+                      overlayColor: MaterialStateProperty.all(
+                        const Color(0xFF00E5FF).withOpacity(0.1),
+                      ),
+                    ),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color(0xFF627EEA),
+                            Color(0xFF00E5FF),
+                            Color(0xFF9945FF),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      alignment: Alignment.center,
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'LOGIN â†’',
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 14,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                                letterSpacing: 4,
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // â”€â”€ DIVIDER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                Row(
+                  children: [
+                    Expanded(
+                      child: Divider(
+                        color: const Color(0xFF627EEA).withOpacity(0.3),
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        'OR',
+                        style: TextStyle(
+                          color: Color(0xFF627EEA),
+                          fontSize: 11,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Divider(
+                        color: const Color(0xFF627EEA).withOpacity(0.3),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // â”€â”€ GOOGLE LOGIN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: OutlinedButton.icon(
+                    onPressed: () {},
+                    icon: const Text('G', style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF00E5FF),
+                    )),
+                    label: const Text(
+                      'Continue with Google',
+                      style: TextStyle(
+                        color: Color(0xFF00E5FF),
+                        fontFamily: 'monospace',
+                        fontSize: 13,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                        color: const Color(0xFF627EEA).withOpacity(0.4),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 30),
+
+                // â”€â”€ SIGN UP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      "Don't have an account? ",
+                      style: TextStyle(
+                        color: Color(0xFF627EEA),
+                        fontSize: 12,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {},
+                      child: const Text(
+                        'Sign Up',
+                        style: TextStyle(
+                          color: Color(0xFF00E5FF),
+                          fontSize: 12,
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.w900,
+                          decoration: TextDecoration.underline,
+                          decorationColor: Color(0xFF00E5FF),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // â”€â”€ FOOTER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                const Text(
+                  'â¬¡ THEWALL Â· EMOWALL Â· EMOBIES Â· DWIN 05',
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 9,
+                    color: Color(0xFF627EEA),
+                    letterSpacing: 2,
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+              ],
+            ),
           ),
-        );
-      },
-    );
-  }
-}
-
-class UltimateLogoPainter extends CustomPainter {
-  final double pulse;
-  final double scan;
-  final double rotate;
-
-  UltimateLogoPainter({
-    required this.pulse,
-    required this.scan,
-    required this.rotate,
-  });
-
-  // Hexagon path helper
-  Path _hexPath(Offset center, double radius, {double rotation = 0}) {
-    final path = Path();
-    for (int i = 0; i < 6; i++) {
-      final angle = (i * 60 + rotation) * math.pi / 180;
-      final x = center.dx + radius * math.cos(angle);
-      final y = center.dy + radius * math.sin(angle);
-      if (i == 0) path.moveTo(x, y);
-      else path.lineTo(x, y);
-    }
-    path.close();
-    return path;
-  }
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2.1;
-
-    // â”€â”€ 1. OUTER GLOW RING â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    final glowRadius = radius + 8 + (pulse * 6);
-    canvas.drawCircle(
-      center,
-      glowRadius,
-      Paint()
-        ..color = const Color(0xFF00E5FF).withOpacity(0.06 + pulse * 0.06)
-        ..maskFilter = MaskFilter.blur(BlurStyle.outer, 20 + pulse * 10),
-    );
-
-    // â”€â”€ 2. OUTER ROTATING HEX â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    final outerHex = _hexPath(center, radius, rotation: rotate * 360);
-    canvas.drawPath(
-      outerHex,
-      Paint()
-        ..shader = LinearGradient(
-          colors: [
-            const Color(0xFF627EEA).withOpacity(0.3),
-            const Color(0xFF00E5FF).withOpacity(0.15),
-            const Color(0xFF9945FF).withOpacity(0.3),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5,
-    );
-
-    // â”€â”€ 3. MAIN HEX BACKGROUND â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    final mainHex = _hexPath(center, radius * 0.9);
-
-    // Dark background
-    canvas.drawPath(
-      mainHex,
-      Paint()
-        ..shader = RadialGradient(
-          colors: [
-            const Color(0xFF0D1F3C),
-            const Color(0xFF050A14),
-          ],
-          center: const Alignment(-0.3, -0.3),
-        ).createShader(Rect.fromCircle(center: center, radius: radius)),
-    );
-
-    // Hex border glow
-    canvas.drawPath(
-      mainHex,
-      Paint()
-        ..shader = LinearGradient(
-          colors: [
-            const Color(0xFF627EEA),
-            const Color(0xFF00E5FF),
-            const Color(0xFF9945FF),
-            const Color(0xFF627EEA),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5
-        ..maskFilter = MaskFilter.blur(BlurStyle.outer, 2 + pulse * 4),
-    );
-
-    // â”€â”€ 4. BRICK WALL PATTERN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    canvas.save();
-    canvas.clipPath(mainHex);
-
-    final brickPaint = Paint()
-      ..color = const Color(0xFF00E5FF).withOpacity(0.08)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.8;
-
-    final brickH = size.height / 7;
-    final brickW = size.width / 3;
-
-    for (int row = 0; row < 8; row++) {
-      final y = row * brickH;
-      // Horizontal line
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), brickPaint);
-      // Vertical brick dividers (offset per row)
-      final offsetX = (row % 2 == 0) ? 0.0 : brickW / 2;
-      for (double x = offsetX; x < size.width; x += brickW) {
-        canvas.drawLine(Offset(x, y), Offset(x, y + brickH), brickPaint);
-      }
-    }
-
-    // â”€â”€ 5. SCAN LINE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    final scanY = size.height * 0.15 + (size.height * 0.7 * scan);
-    // Main scan line
-    canvas.drawLine(
-      Offset(0, scanY),
-      Offset(size.width, scanY),
-      Paint()
-        ..color = const Color(0xFF00FF88).withOpacity(0.5)
-        ..strokeWidth = 1.5
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
-    );
-    // Scan glow trail
-    canvas.drawLine(
-      Offset(0, scanY - 8),
-      Offset(size.width, scanY - 8),
-      Paint()
-        ..color = const Color(0xFF00FF88).withOpacity(0.1)
-        ..strokeWidth = 8
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
-    );
-
-    canvas.restore();
-
-    // â”€â”€ 6. INNER HEX RING â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    final innerHex = _hexPath(center, radius * 0.55);
-    canvas.drawPath(
-      innerHex,
-      Paint()
-        ..color = const Color(0xFF00E5FF).withOpacity(0.15 + pulse * 0.1)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1,
-    );
-
-    // â”€â”€ 7. CENTER CHAIN DOTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    final dotColors = [
-      const Color(0xFF627EEA), // ETH blue
-      const Color(0xFF9945FF), // SOL purple
-      const Color(0xFF836EF9), // MON
-      const Color(0xFF12AAFF), // ARB
-      const Color(0xFFF7931A), // BTC orange
-    ];
-
-    for (int i = 0; i < 5; i++) {
-      final angle = (i * 72 - 90) * math.pi / 180;
-      final dotX = center.dx + radius * 0.68 * math.cos(angle);
-      final dotY = center.dy + radius * 0.68 * math.sin(angle);
-      canvas.drawCircle(
-        Offset(dotX, dotY),
-        3.5 + (pulse * 1.5),
-        Paint()
-          ..color = dotColors[i].withOpacity(0.8 + pulse * 0.2)
-          ..maskFilter = MaskFilter.blur(BlurStyle.outer, 2 + pulse * 3),
-      );
-    }
-
-    // â”€â”€ 8. CENTER W â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: 'W',
-        style: TextStyle(
-          fontSize: size.width * 0.28,
-          fontWeight: FontWeight.w900,
-          color: Colors.white,
-          fontFamily: 'monospace',
-          shadows: [
-            Shadow(
-              blurRadius: 12 + (pulse * 16),
-              color: const Color(0xFF00FF88),
-              offset: Offset.zero,
-            ),
-            Shadow(
-              blurRadius: 6,
-              color: const Color(0xFF00E5FF).withOpacity(0.6),
-              offset: Offset.zero,
-            ),
-          ],
         ),
       ),
-      textDirection: TextDirection.ltr,
     );
-    textPainter.layout();
-    textPainter.paint(
-      canvas,
-      center - Offset(textPainter.width / 2, textPainter.height / 2),
-    );
-
-    // â”€â”€ 9. CORNER HEX SPARKLES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    for (int i = 0; i < 6; i++) {
-      final angle = (i * 60) * math.pi / 180;
-      final sx = center.dx + radius * 0.9 * math.cos(angle);
-      final sy = center.dy + radius * 0.9 * math.sin(angle);
-      canvas.drawCircle(
-        Offset(sx, sy),
-        2 + pulse,
-        Paint()
-          ..color = const Color(0xFF00E5FF).withOpacity(0.6 + pulse * 0.4)
-          ..maskFilter = MaskFilter.blur(BlurStyle.outer, 2 + pulse * 2),
-      );
-    }
   }
 
-  @override
-  bool shouldRepaint(covariant UltimateLogoPainter old) =>
-      old.pulse != pulse || old.scan != scan || old.rotate != rotate;
+  Widget _buildLabel(String label) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontFamily: 'monospace',
+          fontSize: 10,
+          color: Color(0xFF627EEA),
+          letterSpacing: 3,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    TextInputType? keyboardType,
+    bool obscure = false,
+    Widget? suffixIcon,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      obscureText: obscure,
+      style: const TextStyle(
+        color: Color(0xFFE8F4FD),
+        fontFamily: 'monospace',
+        fontSize: 14,
+      ),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(
+          color: const Color(0xFF627EEA).withOpacity(0.4),
+          fontFamily: 'monospace',
+          fontSize: 13,
+        ),
+        prefixIcon: Icon(icon, color: const Color(0xFF627EEA), size: 20),
+        suffixIcon: suffixIcon,
+        filled: true,
+        fillColor: const Color(0xFF0D1F3C),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(
+            color: const Color(0xFF627EEA).withOpacity(0.3),
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(
+            color: const Color(0xFF627EEA).withOpacity(0.3),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(
+            color: Color(0xFF00E5FF),
+            width: 1.5,
+          ),
+        ),
+      ),
+    );
+  }
 }
