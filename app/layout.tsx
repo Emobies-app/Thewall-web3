@@ -3,7 +3,7 @@ import { EmowallAIChat } from '@/components/EmowallButterfly';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html>
+    <html lang="en">
       <body>
         {children}
         <EmowallAIChat />
