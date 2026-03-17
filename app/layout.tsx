@@ -1,6 +1,7 @@
+import type { ReactNode } from 'react';
 import { EmowallAIChat } from '@/components/EmowallButterfly';
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html>
       <body>
