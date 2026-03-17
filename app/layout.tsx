@@ -1,20 +1,12 @@
-import type { Metadata } from 'next'
-import './globals.css'
-import { WalletProvider } from './context/wallet'
+import { EmowallAIChat } from '@/components/EmowallButterfly';
 
-export const metadata: Metadata = {
-  title: '⬡ THE WALL',
-  description: 'Web3 Wallet · 5 Chains · Gasless · No Seed Phrase',
-}
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html>
       <body>
-        <WalletProvider>
-          {children}
-        </WalletProvider>
+        {children}
+        <EmowallAIChat />  {/* ← butterfly FAB globally */}
       </body>
     </html>
-  )
+  );
 }
