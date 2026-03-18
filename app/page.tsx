@@ -326,9 +326,25 @@ export default function TheWall() {
 
       {/* DApp Browser */}
       {dappOpen&&<div className={styles.searchOverlay}><div style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:12,width:'100%',maxWidth:600,margin:'auto',marginTop:20,padding:0,overflow:'hidden'}}>
-        <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',background:'var(--bg3)',borderBottom:'1px solid var(--border)'}}><input value={dappUrl} onChange={e=>setDappUrl(e.target.value)} style={{flex:1,padding:'8px 10px',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:6,...s.mono,color:'var(--text)',fontSize:'0.75rem'}} placeholder="https://"/><button onClick={()=>setDappOpen(false)} style={{padding:'6px 10px',background:'rgba(255,68,102,0.1)',border:'1px solid rgba(255,68,102,0.2)',borderRadius:6,color:'#ff4466',cursor:'pointer'}}>✕</button></div>
-        <iframe src={dappUrl} style={{width:'100%',height:'70vh',border:'none'}} sandbox="allow-scripts allow-same-origin allow-forms allow-popups" title="DApp"/>
-      </div></div>}
+        <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',background:'var(--bg3)',borderBottom:'1px solid var(--border)'}}>
+          <input 
+            value={dappUrl} 
+            onChange={e=>setDappUrl(e.target.value)} 
+            style={{flex:1,padding:'8px 10px',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:6,...s.mono,color:'var(--text)',fontSize:'0.75rem'}} 
+            placeholder="https://"/>
+          <button 
+            onClick={()=>setDappOpen(false)} 
+            style={{padding:'6px 10px',background:'rgba(255,68,102,0.1)',border:'1px solid rgba(255,68,102,0.2)',borderRadius:6,color:'#ff4466',cursor:'pointer'}}>✕</button>
+        </div>
+        
+        {/* ✅ Security fix: https:// only — blocks javascript: XSS */}
+        <iframe 
+          src={dappUrl.startsWith('https://') ? dappUrl : 'about:blank'} 
+          style={{width:'100%',height:'70vh',border:'none'}} 
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups" 
+          title="DApp"/>
+      </div></div>
+}
 
       <main className={styles.main}>
 
