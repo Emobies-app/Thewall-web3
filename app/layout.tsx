@@ -5,6 +5,10 @@ import './globals.css'
 export const metadata: Metadata = {
   title: '⬡ THE WALL',
   description: 'Web3 Wallet · 5 Chains · Gasless · No Seed Phrase',
+  icons: {
+    icon: '/logo.svg',
+    apple: '/logo.svg',
+  },
 }
 
 export default function RootLayout({ 
