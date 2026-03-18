@@ -57,9 +57,9 @@ export function EmowallButterfly({ size = 120, state = 'idle', onTap }: Props) {
 
     // ── canvas size includes float headroom ──
     const w  = size;
-    const h  = size;
+    const h  = size + 20  // real canvas height
     const cx = w / 2;
-    const cy = h / 2 + 8; // shift down to give float room
+    const cy = h / 2      // centered with padding
     const v  = vals.current;
 
     ctx.clearRect(0, 0, w, h);
@@ -302,7 +302,7 @@ export function EmowallAIChat() {
   };
 
   return (
-    <div style={{ position:'fixed', bottom:24, right:24, zIndex:9999,
+    <div style={{ position:'fixed', bottom:80, right:16, zIndex:9999,
                   display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
 
       {/* Chat Panel */}
