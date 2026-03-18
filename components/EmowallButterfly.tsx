@@ -2,11 +2,6 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 
-// ═══════════════════════════════════════════════════════════
-// EMOWALL AI BUTTERFLY — Next.js / React Component
-// Place in: components/EmowallButterfly.tsx
-// ═══════════════════════════════════════════════════════════
-
 export type ButterflyState = 'idle' | 'thinking' | 'answering' | 'loading' | 'happy';
 
 interface Props {
@@ -14,6 +9,15 @@ interface Props {
   state?: ButterflyState;
   onTap?: () => void;
 }
+
+// ── 5 Chain Colors (auto cycle in idle) ──────────────────
+const CHAIN_COLORS: [string, string, string][] = [
+  ['#627EEA', '#00E5FF', '#4A6CF7'], // 🌍 Earth ETH
+  ['#9945FF', '#836EF9', '#7B2FFF'], // 🌟 Soul SOL
+  ['#00FF88', '#00E5FF', '#00CC44'], // 🌙 Moon MON
+  ['#12AAFF', '#00E5FF', '#0088CC'], // 🪐 Orbit ARB
+  ['#F7931A', '#FFD700', '#FF8C00'], // ₿ Birth BTC
+];
 
 const STATE_COLORS: Record<ButterflyState, [string, string, string]> = {
   idle:      ['#9945FF', '#00E5FF', '#627EEA'],
@@ -40,29 +44,32 @@ const STATE_LABEL: Record<ButterflyState, string> = {
 };
 
 export function EmowallButterfly({ size = 120, state = 'idle', onTap }: Props) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rafRef    = useRef<number>(0);
-  const vals      = useRef({ wing: 0, float: 0, sparkle: 0, pulse: 0, wingDir: 1 });
-  const timeRef   = useRef(0);
+  const canvasRef    = useRef<HTMLCanvasElement>(null);
+  const rafRef       = useRef<number>(0);
+  const vals         = useRef({ wing: 0, float: 0, sparkle: 0, pulse: 0, wingDir: 1, colorIdx: 0, colorTimer: 0 });
+  const timeRef      = useRef(0);
 
-  const draw = useCallback(() => {
+  const draw = useCallback((colors: [string, string, string]) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const w = size, h = size;
-    const cx = w / 2, cy = h / 2;
+    // ── canvas size includes float headroom ──
+    const w  = size;
+    const h  = size;
+    const cx = w / 2;
+    const cy = h / 2 + 8; // shift down to give float room
     const v  = vals.current;
 
     ctx.clearRect(0, 0, w, h);
 
-    const [c1, c2, c3] = STATE_COLORS[state];
-    const spread = 0.4 + v.wing * 0.6;
-    const floatOff = Math.sin(v.float * Math.PI) * 8;
+    const [c1, c2, c3] = colors;
+    const spread   = 0.4 + v.wing * 0.6;
+    const floatOff = Math.sin(v.float * Math.PI * 2) * 7; // ← full sine cycle
 
     ctx.save();
-    ctx.translate(0, -floatOff);
+    ctx.translate(0, floatOff); // butterfly moves up/down
 
     // Outer glow
     const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, w * 0.5);
@@ -82,10 +89,8 @@ export function EmowallButterfly({ size = 120, state = 'idle', onTap }: Props) {
       grad.addColorStop(0, `${c1}E6`);
       grad.addColorStop(0.6, `${c2}B3`);
       grad.addColorStop(1, `${c3}66`);
-      ctx.fillStyle = grad;
+      ctx.fillStyle   = grad;
       ctx.fill(path);
-
-      // glow border
       ctx.shadowColor = c2;
       ctx.shadowBlur  = 4 + v.pulse * 6;
       ctx.strokeStyle = `${c2}${Math.round((0.6 + v.pulse * 0.4) * 255).toString(16).padStart(2, '0')}`;
@@ -94,39 +99,32 @@ export function EmowallButterfly({ size = 120, state = 'idle', onTap }: Props) {
       ctx.shadowBlur  = 0;
     };
 
-    // Left upper wing
+    // Wings
     const luw = new Path2D();
     luw.moveTo(cx, cy - h * 0.05);
     luw.bezierCurveTo(cx - w * 0.15, cy - h * 0.45, cx - w * spread * 0.85, cy - h * 0.35, cx - w * spread * 0.7, cy - h * 0.05);
     luw.bezierCurveTo(cx - w * spread * 0.5, cy + h * 0.05, cx - w * 0.1, cy + h * 0.05, cx, cy - h * 0.05);
-    luw.closePath();
-    drawWing(luw, [-0.5, -0.3]);
+    luw.closePath(); drawWing(luw, [-0.5, -0.3]);
 
-    // Right upper wing
     const ruw = new Path2D();
     ruw.moveTo(cx, cy - h * 0.05);
     ruw.bezierCurveTo(cx + w * 0.15, cy - h * 0.45, cx + w * spread * 0.85, cy - h * 0.35, cx + w * spread * 0.7, cy - h * 0.05);
     ruw.bezierCurveTo(cx + w * spread * 0.5, cy + h * 0.05, cx + w * 0.1, cy + h * 0.05, cx, cy - h * 0.05);
-    ruw.closePath();
-    drawWing(ruw, [0.5, -0.3]);
+    ruw.closePath(); drawWing(ruw, [0.5, -0.3]);
 
-    // Left lower wing
     const llw = new Path2D();
     llw.moveTo(cx, cy + h * 0.05);
     llw.bezierCurveTo(cx - w * 0.1, cy + h * 0.05, cx - w * spread * 0.7, cy + h * 0.05, cx - w * spread * 0.5, cy + h * 0.35);
     llw.bezierCurveTo(cx - w * 0.25, cy + h * 0.42, cx - w * 0.05, cy + h * 0.3, cx, cy + h * 0.05);
-    llw.closePath();
-    drawWing(llw, [-0.3, 0.5]);
+    llw.closePath(); drawWing(llw, [-0.3, 0.5]);
 
-    // Right lower wing
     const rlw = new Path2D();
     rlw.moveTo(cx, cy + h * 0.05);
     rlw.bezierCurveTo(cx + w * 0.1, cy + h * 0.05, cx + w * spread * 0.7, cy + h * 0.05, cx + w * spread * 0.5, cy + h * 0.35);
     rlw.bezierCurveTo(cx + w * 0.25, cy + h * 0.42, cx + w * 0.05, cy + h * 0.3, cx, cy + h * 0.05);
-    rlw.closePath();
-    drawWing(rlw, [0.3, 0.5]);
+    rlw.closePath(); drawWing(rlw, [0.3, 0.5]);
 
-    // Wing pattern dots
+    // Wing dots
     [[-0.28, -0.18], [0.28, -0.18]].forEach(([dx, dy]) => {
       ctx.shadowColor = c2;
       ctx.shadowBlur  = 5 + v.pulse * 4;
@@ -134,7 +132,7 @@ export function EmowallButterfly({ size = 120, state = 'idle', onTap }: Props) {
       ctx.beginPath();
       ctx.arc(cx + w * dx, cy + h * dy, w * 0.07, 0, Math.PI * 2);
       ctx.fill();
-      ctx.shadowBlur = 0;
+      ctx.shadowBlur  = 0;
     });
 
     // Body
@@ -144,45 +142,32 @@ export function EmowallButterfly({ size = 120, state = 'idle', onTap }: Props) {
     body.bezierCurveTo(cx + w * 0.04, cy + h * 0.1, cx + w * 0.04, cy - h * 0.1, cx, cy - h * 0.25);
     body.closePath();
     const bodyGrad = ctx.createLinearGradient(cx, cy - h * 0.25, cx, cy + h * 0.28);
-    bodyGrad.addColorStop(0, c1);
-    bodyGrad.addColorStop(1, c2);
-    ctx.shadowColor = c2;
-    ctx.shadowBlur  = 3 + v.pulse * 4;
-    ctx.fillStyle   = bodyGrad;
-    ctx.fill(body);
-    ctx.shadowBlur  = 0;
+    bodyGrad.addColorStop(0, c1); bodyGrad.addColorStop(1, c2);
+    ctx.shadowColor = c2; ctx.shadowBlur = 3 + v.pulse * 4;
+    ctx.fillStyle = bodyGrad; ctx.fill(body); ctx.shadowBlur = 0;
 
     // Head
-    ctx.shadowColor = c2;
-    ctx.shadowBlur  = 5 + v.pulse * 6;
-    ctx.fillStyle   = c2;
-    ctx.beginPath();
-    ctx.arc(cx, cy - h * 0.27, w * 0.055, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur  = 0;
+    ctx.shadowColor = c2; ctx.shadowBlur = 5 + v.pulse * 6;
+    ctx.fillStyle = c2;
+    ctx.beginPath(); ctx.arc(cx, cy - h * 0.27, w * 0.055, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
 
     // Eyes
     ctx.fillStyle = 'rgba(255,255,255,0.9)';
     [[-0.02, -0.28], [0.02, -0.28]].forEach(([dx, dy]) => {
-      ctx.beginPath();
-      ctx.arc(cx + w * dx, cy + h * dy, w * 0.015, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.beginPath(); ctx.arc(cx + w * dx, cy + h * dy, w * 0.015, 0, Math.PI * 2); ctx.fill();
     });
 
     // Antennae
-    ctx.strokeStyle = `${c2}CC`;
-    ctx.lineWidth   = 1.2;
+    ctx.strokeStyle = `${c2}CC`; ctx.lineWidth = 1.2;
     [[-1, -1], [1, 1]].forEach(([sx, ex]) => {
       ctx.beginPath();
       ctx.moveTo(cx + w * 0.01 * sx, cy - h * 0.3);
       ctx.lineTo(cx + w * 0.12 * ex, cy - h * 0.47);
       ctx.stroke();
-      ctx.shadowColor = c1;
-      ctx.shadowBlur  = 4 + v.pulse * 3;
-      ctx.fillStyle   = c1;
-      ctx.beginPath();
-      ctx.arc(cx + w * 0.12 * ex, cy - h * 0.47, w * 0.02, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.shadowColor = c1; ctx.shadowBlur = 4 + v.pulse * 3;
+      ctx.fillStyle = c1;
+      ctx.beginPath(); ctx.arc(cx + w * 0.12 * ex, cy - h * 0.47, w * 0.02, 0, Math.PI * 2); ctx.fill();
       ctx.shadowBlur = 0;
     });
 
@@ -194,25 +179,21 @@ export function EmowallButterfly({ size = 120, state = 'idle', onTap }: Props) {
         const sx    = cx + dist * Math.cos(angle);
         const sy    = cy + dist * Math.sin(angle);
         const sSize = w * (0.012 + (i % 3) * 0.005);
-        ctx.shadowColor = c2;
-        ctx.shadowBlur  = 4;
-        ctx.fillStyle   = `${c2}B3`;
+        ctx.shadowColor = c2; ctx.shadowBlur = 4;
+        ctx.fillStyle = `${c2}B3`;
         ctx.beginPath();
         ctx.arc(sx, sy, sSize * (0.5 + Math.sin(v.sparkle * Math.PI * 4 + i) * 0.5), 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        ctx.fill(); ctx.shadowBlur = 0;
       }
     }
 
     // Label
     const label = STATE_LABEL[state];
-    ctx.font      = `${w * 0.1}px monospace`;
-    ctx.fillStyle = `${c2}CC`;
-    ctx.shadowColor = c2;
-    ctx.shadowBlur  = 6;
-    ctx.textAlign   = 'center';
+    ctx.font = `${w * 0.1}px monospace`;
+    ctx.fillStyle = `${c2}CC`; ctx.shadowColor = c2; ctx.shadowBlur = 6;
+    ctx.textAlign = 'center';
     ctx.fillText(label, cx, cy + h * 0.45);
-    ctx.shadowBlur  = 0;
+    ctx.shadowBlur = 0;
 
     ctx.restore();
   }, [size, state]);
@@ -220,24 +201,38 @@ export function EmowallButterfly({ size = 120, state = 'idle', onTap }: Props) {
   useEffect(() => {
     let last = 0;
     const speed = WING_SPEED[state];
+    const COLOR_CYCLE_MS = 3000; // change color every 3s in idle
 
     const loop = (ts: number) => {
-      const dt = ts - last;
+      const dt = Math.min(ts - last, 50);
       last = ts;
       timeRef.current += dt;
 
       const v = vals.current;
 
-      // Wing oscillation — direction aware
+      // Wing
       v.wing += (dt / speed) * v.wingDir;
       if (v.wing >= 1) { v.wing = 1; v.wingDir = -1; }
-      if (v.wing <= 0) { v.wing = 0; v.wingDir = 1; }
+      if (v.wing <= 0) { v.wing = 0; v.wingDir  = 1; }
 
+      // Float (full sine wave, smooth)
       v.float   = (v.float   + dt / 2400) % 1;
       v.sparkle = (v.sparkle + dt / 1200) % 1;
       v.pulse   = Math.abs(Math.sin(timeRef.current / 1800 * Math.PI));
 
-      draw();
+      // Color cycle (idle only)
+      if (state === 'idle') {
+        v.colorTimer += dt;
+        if (v.colorTimer >= COLOR_CYCLE_MS) {
+          v.colorTimer = 0;
+          v.colorIdx   = (v.colorIdx + 1) % CHAIN_COLORS.length;
+        }
+      }
+
+      const colors: [string, string, string] =
+        state === 'idle' ? CHAIN_COLORS[v.colorIdx] : STATE_COLORS[state];
+
+      draw(colors);
       rafRef.current = requestAnimationFrame(loop);
     };
 
@@ -257,26 +252,21 @@ export function EmowallButterfly({ size = 120, state = 'idle', onTap }: Props) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// EMOWALL AI CHAT WIDGET — Full chat panel
-// Usage: <EmowallAIChat /> anywhere in your app
+// EMOWALL AI CHAT WIDGET
 // ═══════════════════════════════════════════════════════════
 
-interface Message {
-  role: 'user' | 'ai';
-  content: string;
-}
+interface Message { role: 'user' | 'ai'; content: string; }
 
 export function EmowallAIChat() {
-  const [isOpen, setIsOpen]   = useState(false);
-  const [bState, setBState]   = useState<ButterflyState>('idle');
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput]     = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isOpen,    setIsOpen]    = useState(false);
+  const [bState,    setBState]    = useState<ButterflyState>('idle');
+  const [messages,  setMessages]  = useState<Message[]>([]);
+  const [input,     setInput]     = useState('');
+  const [loading,   setLoading]   = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const scrollBottom = () => {
+  const scrollBottom = () =>
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-  };
 
   const toggle = () => {
     setIsOpen(o => !o);
@@ -293,12 +283,10 @@ export function EmowallAIChat() {
     scrollBottom();
 
     try {
-      // ── Call your Next.js API route ──────────────────────
-      // Create: /app/api/ai/route.ts  (see below)
       const res  = await fetch('/api/ai', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, history: messages }),
+        body:    JSON.stringify({ message: text, history: messages }),
       });
       const data = await res.json();
       setBState('answering');
@@ -314,56 +302,55 @@ export function EmowallAIChat() {
   };
 
   return (
-    <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+    <div style={{ position:'fixed', bottom:24, right:24, zIndex:9999,
+                  display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
+
       {/* Chat Panel */}
       {isOpen && (
-        <div style={{
-          width: 300, height: 420,
-          background: '#050A14',
-          border: '1px solid #627EEA55',
-          borderRadius: 16,
-          display: 'flex', flexDirection: 'column',
-          boxShadow: '0 0 30px #00E5FF22',
-          fontFamily: 'monospace',
-        }}>
+        <div style={{ width:300, height:420, background:'#050A14',
+                      border:'1px solid #627EEA55', borderRadius:16,
+                      display:'flex', flexDirection:'column',
+                      boxShadow:'0 0 30px #00E5FF22', fontFamily:'monospace' }}>
+
           {/* Header */}
-          <div style={{ padding: '10px 14px', borderBottom: '1px solid #627EEA44', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ padding:'10px 14px', borderBottom:'1px solid #627EEA44',
+                        display:'flex', alignItems:'center', gap:8 }}>
             <EmowallButterfly size={36} state={bState} />
-            <div style={{ flex: 1 }}>
-              <div style={{ color: '#00E5FF', fontSize: 12, fontWeight: 900 }}>Emowall AI Web3</div>
-              <div style={{ color: '#627EEA', fontSize: 9 }}>🦋 Always here to help</div>
+            <div style={{ flex:1 }}>
+              <div style={{ color:'#00E5FF', fontSize:12, fontWeight:900 }}>Emowall AI Web3</div>
+              <div style={{ color:'#627EEA', fontSize:9 }}>🦋 Always here to help</div>
             </div>
-            <button onClick={toggle} style={{ background: 'none', border: 'none', color: '#627EEA', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
+            <button onClick={toggle}
+              style={{ background:'none', border:'none', color:'#627EEA', cursor:'pointer', fontSize:18, lineHeight:1 }}>×</button>
           </div>
 
           {/* Messages */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ flex:1, overflowY:'auto', padding:12,
+                        display:'flex', flexDirection:'column', gap:8 }}>
             {messages.length === 0 ? (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+              <div style={{ flex:1, display:'flex', flexDirection:'column',
+                            alignItems:'center', justifyContent:'center', gap:10 }}>
                 <EmowallButterfly size={72} state="idle" />
-                <div style={{ color: '#627EEA', fontSize: 11, textAlign: 'center' }}>
+                <div style={{ color:'#627EEA', fontSize:11, textAlign:'center' }}>
                   Hi! I&apos;m Emowall AI Web3 🦋<br />Ask me anything!
                 </div>
               </div>
             ) : (
               messages.map((msg, i) => (
-                <div key={i} style={{ alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: 220 }}>
-                  <div style={{
-                    padding: '8px 12px',
-                    borderRadius: 10,
-                    fontSize: 11,
-                    background: msg.role === 'user' ? '#0D1F3C' : '#050F1A',
-                    border: `1px solid ${msg.role === 'user' ? '#627EEA66' : '#00E5FF44'}`,
-                    color: msg.role === 'user' ? '#E8F4FD' : '#00E5FF',
-                  }}>
+                <div key={i} style={{ alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', maxWidth:220 }}>
+                  <div style={{ padding:'8px 12px', borderRadius:10, fontSize:11,
+                                background: msg.role === 'user' ? '#0D1F3C' : '#050F1A',
+                                border:`1px solid ${msg.role === 'user' ? '#627EEA66' : '#00E5FF44'}`,
+                                color: msg.role === 'user' ? '#E8F4FD' : '#00E5FF' }}>
                     {msg.content}
                   </div>
                 </div>
               ))
             )}
             {loading && (
-              <div style={{ alignSelf: 'flex-start' }}>
-                <div style={{ color: '#627EEA', fontSize: 11, padding: '8px 12px', border: '1px solid #627EEA33', borderRadius: 10 }}>
+              <div style={{ alignSelf:'flex-start' }}>
+                <div style={{ color:'#627EEA', fontSize:11, padding:'8px 12px',
+                              border:'1px solid #627EEA33', borderRadius:10 }}>
                   🦋 thinking...
                 </div>
               </div>
@@ -372,26 +359,19 @@ export function EmowallAIChat() {
           </div>
 
           {/* Input */}
-          <div style={{ padding: 10, borderTop: '1px solid #627EEA44', display: 'flex', gap: 6 }}>
+          <div style={{ padding:10, borderTop:'1px solid #627EEA44', display:'flex', gap:6 }}>
             <input
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && sendMessage(input)}
               placeholder="Ask Emowall AI..."
-              style={{
-                flex: 1, background: 'transparent', border: 'none', outline: 'none',
-                color: '#E8F4FD', fontSize: 12, fontFamily: 'monospace',
-              }}
+              style={{ flex:1, background:'transparent', border:'none', outline:'none',
+                       color:'#E8F4FD', fontSize:12, fontFamily:'monospace' }}
             />
-            <button
-              onClick={() => sendMessage(input)}
-              style={{
-                background: '#627EEA22', border: '1px solid #627EEA44',
-                borderRadius: 6, padding: '4px 8px', cursor: 'pointer', color: '#00E5FF', fontSize: 14,
-              }}
-            >
-              ➤
-            </button>
+            <button onClick={() => sendMessage(input)}
+              style={{ background:'#627EEA22', border:'1px solid #627EEA44',
+                       borderRadius:6, padding:'4px 8px', cursor:'pointer',
+                       color:'#00E5FF', fontSize:14 }}>➤</button>
           </div>
         </div>
       )}
@@ -400,4 +380,4 @@ export function EmowallAIChat() {
       <EmowallButterfly size={80} state={bState} onTap={toggle} />
     </div>
   );
-                                            }
+}
