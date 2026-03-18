@@ -34,7 +34,6 @@ const STATE_LABEL: Record<ButterflyState, string> = {
   idle: 'Emowall AI', thinking: 'Thinking...', answering: 'Answering ✓', loading: 'Loading...', happy: 'Done! 🦋',
 };
 
-// ── Butterfly canvas component ──────────────────────────
 export function EmowallButterfly({ size = 120, state = 'idle', onTap }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef    = useRef<number>(0);
@@ -55,7 +54,6 @@ export function EmowallButterfly({ size = 120, state = 'idle', onTap }: Props) {
     ctx.save();
     ctx.translate(0, floatOff);
 
-    // glow
     const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, w * 0.5);
     glow.addColorStop(0, `${c2}22`); glow.addColorStop(1, `${c2}00`);
     ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx, cy, w * 0.5, 0, Math.PI * 2); ctx.fill();
@@ -151,7 +149,10 @@ export function EmowallButterfly({ size = 120, state = 'idle', onTap }: Props) {
       v.float   = (v.float   + dt / 2400) % 1;
       v.sparkle = (v.sparkle + dt / 1200) % 1;
       v.pulse   = Math.abs(Math.sin(timeRef.current / 1800 * Math.PI));
-      if (state === 'idle') { v.colorTimer += dt; if (v.colorTimer >= 3000) { v.colorTimer = 0; v.colorIdx = (v.colorIdx + 1) % CHAIN_COLORS.length; } }
+      if (state === 'idle') {
+        v.colorTimer += dt;
+        if (v.colorTimer >= 3000) { v.colorTimer = 0; v.colorIdx = (v.colorIdx + 1) % CHAIN_COLORS.length; }
+      }
       draw(state === 'idle' ? CHAIN_COLORS[v.colorIdx] : STATE_COLORS[state]);
       rafRef.current = requestAnimationFrame(loop);
     };
@@ -172,52 +173,49 @@ export function EmowallButterfly({ size = 120, state = 'idle', onTap }: Props) {
 interface Message { role: 'user' | 'ai'; content: string; }
 
 export function EmowallAIChat() {
-  const [isOpen,   setIsOpen]   = useState(false);
-  const [bState,   setBState]   = useState<ButterflyState>('idle');
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input,    setInput]    = useState('');
-  const [loading,  setLoading]  = useState(false);
-
-  // ── Draggable position ──────────────────────────────────
-  const [pos,     setPos]     = useState({ x: 0, y: 0 });
+  const [isOpen,     setIsOpen]     = useState(false);
+  const [bState,     setBState]     = useState<ButterflyState>('idle');
+  const [messages,   setMessages]   = useState<Message[]>([]);
+  const [input,      setInput]      = useState('');
+  const [loading,    setLoading]    = useState(false);
+  const [pos,        setPos]        = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  const dragStart = useRef({ mx: 0, my: 0, bx: 0, by: 0 });
-  const posRef    = useRef({ x: 0, y: 0 });
-  const hasMoved  = useRef(false);
+  const [mounted,    setMounted]    = useState(false);
 
-  // ── Flying path ─────────────────────────────────────────
-  const [isFlying, setIsFlying] = useState(false);
-  const flyRef = useRef({ t: 0, startX: 0, startY: 0, targetX: 0, targetY: 0 });
-  const flyRaf = useRef<number>(0);
+  const dragStart  = useRef({ mx: 0, my: 0, bx: 0, by: 0 });
+  const posRef     = useRef({ x: 0, y: 0 });
+  const hasMoved   = useRef(false);
+  const flyRaf     = useRef<number>(0);
+  const bottomRef  = useRef<HTMLDivElement>(null);
 
-  const bottomRef = useRef<HTMLDivElement>(null);
+  // ── Mount check (avoid SSR window errors) ──────────────
+  useEffect(() => { setMounted(true); }, []);
 
   const scrollBottom = () =>
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
 
   // ── Fly to random position ──────────────────────────────
   const flyToRandom = useCallback(() => {
+    if (typeof window === 'undefined') return;
     const maxX = window.innerWidth  - 100;
     const maxY = window.innerHeight - 160;
-    const tx   = Math.random() * maxX;
-    const ty   = Math.random() * maxY;
-    flyRef.current = { t: 0, startX: posRef.current.x, startY: posRef.current.y, targetX: tx, targetY: ty };
-    setIsFlying(true);
+    const tx   = Math.random() * Math.max(maxX, 100);
+    const ty   = Math.random() * Math.max(maxY, 200);
+    const startX = posRef.current.x;
+    const startY = posRef.current.y;
+    let t = 0;
 
     const animate = () => {
-      flyRef.current.t += 0.02;
-      const { t, startX, startY, targetX, targetY } = flyRef.current;
+      t += 0.02;
       if (t >= 1) {
-        setPos({ x: targetX, y: targetY });
-        posRef.current = { x: targetX, y: targetY };
-        setIsFlying(false);
+        setPos({ x: tx, y: ty });
+        posRef.current = { x: tx, y: ty };
         return;
       }
-      // Ease in-out with wave path
-      const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+      const ease  = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
       const waveY = Math.sin(t * Math.PI * 3) * 40;
-      const nx = startX + (targetX - startX) * ease;
-      const ny = startY + (targetY - startY) * ease + waveY;
+      const nx    = startX + (tx - startX) * ease;
+      const ny    = startY + (ty - startY) * ease + waveY;
       setPos({ x: nx, y: ny });
       posRef.current = { x: nx, y: ny };
       flyRaf.current = requestAnimationFrame(animate);
@@ -225,19 +223,18 @@ export function EmowallAIChat() {
     flyRaf.current = requestAnimationFrame(animate);
   }, []);
 
-  // Auto fly every 8s when idle and not dragging
+  // Auto fly every 8s when idle
   useEffect(() => {
-    if (isOpen || isDragging) return;
+    if (!mounted || isOpen || isDragging) return;
     const interval = setInterval(() => {
       if (!isDragging && !isOpen) flyToRandom();
     }, 8000);
     return () => clearInterval(interval);
-  }, [isOpen, isDragging, flyToRandom]);
+  }, [mounted, isOpen, isDragging, flyToRandom]);
 
   // ── Drag handlers ───────────────────────────────────────
   const onPointerDown = (e: React.PointerEvent) => {
     cancelAnimationFrame(flyRaf.current);
-    setIsFlying(false);
     setIsDragging(true);
     hasMoved.current = false;
     dragStart.current = {
@@ -261,20 +258,19 @@ export function EmowallAIChat() {
   const onPointerUp = () => {
     setIsDragging(false);
     if (!hasMoved.current) {
-      // It was a tap — toggle chat
       setIsOpen(o => !o);
       setBState('happy');
       setTimeout(() => setBState('idle'), 600);
     }
   };
 
-  // ── Send message ────────────────────────────────────────
   const toggle = () => {
     setIsOpen(o => !o);
     setBState('happy');
     setTimeout(() => setBState('idle'), 600);
   };
 
+  // ── Send message ────────────────────────────────────────
   const sendMessage = async (text: string) => {
     if (!text.trim() || loading) return;
     setInput(''); setLoading(true);
@@ -282,7 +278,8 @@ export function EmowallAIChat() {
     setBState('thinking'); scrollBottom();
     try {
       const res  = await fetch('/api/ai', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text, history: messages }),
       });
       const data = await res.json();
@@ -296,11 +293,11 @@ export function EmowallAIChat() {
     } finally { setLoading(false); }
   };
 
-  // ── Position: fixed bottom-right by default, offset by pos ──
-  const right  = Math.max(8, window.innerWidth  - pos.x - 96);
-  const bottom = Math.max(8, window.innerHeight - pos.y - 110);
-  const useAbsolute = pos.x !== 0 || pos.y !== 0;
+  // ── Don't render on server ──────────────────────────────
+  if (!mounted) return null;
 
+  // ── Position logic ──────────────────────────────────────
+  const useAbsolute = pos.x !== 0 || pos.y !== 0;
   const containerStyle: React.CSSProperties = useAbsolute
     ? { position: 'fixed', left: pos.x, top: pos.y, zIndex: 9999,
         display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8,
@@ -313,44 +310,48 @@ export function EmowallAIChat() {
 
       {/* Chat Panel */}
       {isOpen && (
-        <div style={{ width:300, height:420, background:'#050A14',
-                      border:'1px solid #627EEA55', borderRadius:16,
-                      display:'flex', flexDirection:'column',
-                      boxShadow:'0 0 30px #00E5FF22', fontFamily:'monospace' }}>
-          <div style={{ padding:'10px 14px', borderBottom:'1px solid #627EEA44',
-                        display:'flex', alignItems:'center', gap:8 }}>
+        <div style={{ width: 300, height: 420, background: '#050A14',
+                      border: '1px solid #627EEA55', borderRadius: 16,
+                      display: 'flex', flexDirection: 'column',
+                      boxShadow: '0 0 30px #00E5FF22', fontFamily: 'monospace' }}>
+
+          {/* Header */}
+          <div style={{ padding: '10px 14px', borderBottom: '1px solid #627EEA44',
+                        display: 'flex', alignItems: 'center', gap: 8 }}>
             <EmowallButterfly size={36} state={bState} />
-            <div style={{ flex:1 }}>
-              <div style={{ color:'#00E5FF', fontSize:12, fontWeight:900 }}>Emowall AI Web3</div>
-              <div style={{ color:'#627EEA', fontSize:9 }}>🦋 Always here to help</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: '#00E5FF', fontSize: 12, fontWeight: 900 }}>Emowall AI Web3</div>
+              <div style={{ color: '#627EEA', fontSize: 9 }}>🦋 Always here to help</div>
             </div>
             <button onClick={toggle}
-              style={{ background:'none', border:'none', color:'#627EEA', cursor:'pointer', fontSize:18, lineHeight:1 }}>×</button>
+              style={{ background: 'none', border: 'none', color: '#627EEA', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
           </div>
 
-          <div style={{ flex:1, overflowY:'auto', padding:12, display:'flex', flexDirection:'column', gap:8 }}>
+          {/* Messages */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: 12,
+                        display: 'flex', flexDirection: 'column', gap: 8 }}>
             {messages.length === 0 ? (
-              <div style={{ flex:1, display:'flex', flexDirection:'column',
-                            alignItems:'center', justifyContent:'center', gap:10 }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column',
+                            alignItems: 'center', justifyContent: 'center', gap: 10 }}>
                 <EmowallButterfly size={72} state="idle" />
-                <div style={{ color:'#627EEA', fontSize:11, textAlign:'center' }}>
+                <div style={{ color: '#627EEA', fontSize: 11, textAlign: 'center' }}>
                   Hi! I&apos;m Emowall AI Web3 🦋<br />Ask me anything!
                 </div>
               </div>
             ) : messages.map((msg, i) => (
-              <div key={i} style={{ alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', maxWidth:220 }}>
-                <div style={{ padding:'8px 12px', borderRadius:10, fontSize:11,
+              <div key={i} style={{ alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: 220 }}>
+                <div style={{ padding: '8px 12px', borderRadius: 10, fontSize: 11,
                               background: msg.role === 'user' ? '#0D1F3C' : '#050F1A',
-                              border:`1px solid ${msg.role === 'user' ? '#627EEA66' : '#00E5FF44'}`,
+                              border: `1px solid ${msg.role === 'user' ? '#627EEA66' : '#00E5FF44'}`,
                               color: msg.role === 'user' ? '#E8F4FD' : '#00E5FF' }}>
                   {msg.content}
                 </div>
               </div>
             ))}
             {loading && (
-              <div style={{ alignSelf:'flex-start' }}>
-                <div style={{ color:'#627EEA', fontSize:11, padding:'8px 12px',
-                              border:'1px solid #627EEA33', borderRadius:10 }}>
+              <div style={{ alignSelf: 'flex-start' }}>
+                <div style={{ color: '#627EEA', fontSize: 11, padding: '8px 12px',
+                              border: '1px solid #627EEA33', borderRadius: 10 }}>
                   🦋 thinking...
                 </div>
               </div>
@@ -358,15 +359,17 @@ export function EmowallAIChat() {
             <div ref={bottomRef} />
           </div>
 
-          <div style={{ padding:10, borderTop:'1px solid #627EEA44', display:'flex', gap:6 }}>
+          {/* Input */}
+          <div style={{ padding: 10, borderTop: '1px solid #627EEA44', display: 'flex', gap: 6 }}>
             <input value={input} onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && sendMessage(input)}
               placeholder="Ask Emowall AI..."
-              style={{ flex:1, background:'transparent', border:'none', outline:'none',
-                       color:'#E8F4FD', fontSize:12, fontFamily:'monospace' }} />
+              style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                       color: '#E8F4FD', fontSize: 12, fontFamily: 'monospace' }} />
             <button onClick={() => sendMessage(input)}
-              style={{ background:'#627EEA22', border:'1px solid #627EEA44',
-                       borderRadius:6, padding:'4px 8px', cursor:'pointer', color:'#00E5FF', fontSize:14 }}>➤</button>
+              style={{ background: '#627EEA22', border: '1px solid #627EEA44',
+                       borderRadius: 6, padding: '4px 8px', cursor: 'pointer',
+                       color: '#00E5FF', fontSize: 14 }}>➤</button>
           </div>
         </div>
       )}
@@ -376,9 +379,10 @@ export function EmowallAIChat() {
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        style={{ cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'none',
-                 filter: isFlying ? 'drop-shadow(0 0 12px #00E5FF)' : 'none',
-                 transition: isFlying ? 'none' : 'filter 0.3s' }}
+        style={{ cursor: isDragging ? 'grabbing' : 'grab',
+                 touchAction: 'none',
+                 filter: isDragging ? 'drop-shadow(0 0 12px #00E5FF)' : 'none',
+                 transition: isDragging ? 'none' : 'filter 0.3s' }}
       >
         <EmowallButterfly size={80} state={bState} />
       </div>
