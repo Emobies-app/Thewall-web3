@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: '⬡ THE WALL',
   description: 'Web3 Wallet · 5 Chains · Gasless · No Seed Phrase',
   icons: {
-    icon: '/logo.svg',
+    icon: '/public/logo.svg',
     apple: '/logo.svg',
   },
 }
