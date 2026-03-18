@@ -2,10 +2,13 @@
   "name": "thewall",
   "version": "3.0.0",
   "private": true,
+  "description": "TheWall — Web3 Wallet · 5 Chains · Gasless · No Seed Phrase",
+  "author": "Divin K K (Dwin 05) — Kannur → Dubai",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
     "next": "14.2.5",
@@ -25,5 +28,15 @@
   },
   "overrides": {
     "porto": "^0.1.0"
-  }
+  },
+  "keywords": [
+    "web3",
+    "wallet",
+    "ethereum",
+    "solana",
+    "gasless",
+    "thewall",
+    "emowall",
+    "dwin"
+  ]
 }
