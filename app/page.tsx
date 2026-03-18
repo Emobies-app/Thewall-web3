@@ -262,28 +262,126 @@ export default function TheWall() {
   if(screen==='login') return (
     <div className={styles.loginWrap}>
       <div className={styles.loginCard}>
-        <div className={styles.logo+' fade-up'}><span className={styles.hexLogo}>⬡</span><div><div className={styles.logoTitle}>THE WALL</div><div className={styles.logoSub}>Web3 · Kannur → Dubai · 5 Chains</div></div></div>
+
+        {/* LOGO */}
+        <div className={styles.logo+' fade-up'}>
+          <span className={styles.hexLogo}>⬡</span>
+          <div>
+            <div className={styles.logoTitle}>THE WALL</div>
+            <div className={styles.logoSub}>Web3 · IND → DXB · 5 Chains</div>
+          </div>
+        </div>
+
         {loginStep==='home'&&<div className="fade-up-1">
           <p className={styles.loginDesc}>Gasless wallet. No seed phrase.<br/>Charts · News · Alerts · DApps</p>
-          <div className={styles.featureRow}>{[['⬡','No Seed'],['⚡','Gasless'],['🔒','2FA'],['📊','Charts'],['📰','News'],['🔔','Alerts']].map(([i,l])=><div key={l} className={styles.featureChip}><span>{i}</span><span>{l}</span></div>)}</div>
+
+          {/* FEATURES — single row, colorful, no box overflow */}
+          <div style={{
+            display:'flex', gap:6, flexWrap:'wrap',
+            justifyContent:'center', marginBottom:14,
+          }}>
+            {[
+              {icon:'⬡', label:'No Seed',  color:'#00ff88'},
+              {icon:'⚡', label:'Gasless',  color:'#f7931a'},
+              {icon:'🔒', label:'2FA',      color:'#ff4466'},
+              {icon:'📊', label:'Charts',   color:'#627eea'},
+              {icon:'📰', label:'News',     color:'#ffffff'},
+              {icon:'🔔', label:'Alerts',   color:'#ffd700'},
+              {icon:'🌐', label:'DApps',    color:'#9945ff'},
+              {icon:'🔄', label:'Swap',     color:'#00e5ff'},
+            ].map(f=>(
+              <div key={f.label} style={{
+                display:'flex', alignItems:'center', gap:4,
+                padding:'5px 10px',
+                border:`1px solid ${f.color}44`,
+                borderRadius:20,
+                background:`${f.color}11`,
+                fontSize:'0.68rem',
+                fontFamily:'var(--font-mono)',
+                color: f.color,
+                whiteSpace:'nowrap',
+              }}>
+                <span>{f.icon}</span>
+                <span style={{fontWeight:700}}>{f.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* CHAIN STATUS */}
           <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:16,justifyContent:'center'}}>
-            {[{id:'earth',label:'🌍'},{id:'soul',label:'🌟'},{id:'moon',label:'🌙'},{id:'orbit',label:'🪐'},{id:'birth',label:'₿'}].map(c=>(
-              <div key={c.id} style={{padding:'4px 10px',borderRadius:20,fontSize:'0.65rem',border:'1px solid',...s.mono,borderColor:chainStatus[c.id]==='online'?'rgba(0,255,136,0.3)':chainStatus[c.id]==='offline'?'rgba(255,68,102,0.3)':'rgba(255,255,255,0.1)',color:chainStatus[c.id]==='online'?'#00ff88':chainStatus[c.id]==='offline'?'#ff4466':'rgba(232,244,253,0.4)'}}>
+            {[
+              {id:'earth', label:'🌍 ETH',  color:'#627eea'},
+              {id:'soul',  label:'🌟 SOL',  color:'#9945ff'},
+              {id:'moon',  label:'🌙 MON',  color:'#836ef9'},
+              {id:'orbit', label:'🪐 ARB',  color:'#12aaff'},
+              {id:'birth', label:'₿ BTC',   color:'#f7931a'},
+            ].map(c=>(
+              <div key={c.id} style={{
+                padding:'4px 10px', borderRadius:20,
+                fontSize:'0.65rem', border:'1px solid',
+                fontFamily:'var(--font-mono)',
+                borderColor: chainStatus[c.id]==='online'
+                  ? `${c.color}55`
+                  : chainStatus[c.id]==='offline'
+                  ? 'rgba(255,68,102,0.3)'
+                  : 'rgba(255,255,255,0.1)',
+                color: chainStatus[c.id]==='online'
+                  ? c.color
+                  : chainStatus[c.id]==='offline'
+                  ? '#ff4466'
+                  : 'rgba(232,244,253,0.3)',
+                background: chainStatus[c.id]==='online'
+                  ? `${c.color}11` : 'transparent',
+              }}>
                 {c.label} {chainStatus[c.id]==='online'?'●':chainStatus[c.id]==='offline'?'○':'···'}
               </div>
             ))}
           </div>
+
           <button className={styles.btnPrimary} onClick={()=>setLoginStep('email')}>Sign Up / Login</button>
           <button className={styles.btnSecondary} onClick={handleGuestView}>View Portfolio (Guest)</button>
           <div className={styles.gasNote}>✅ Gas FREE · 🛡️ CodeQL + Snyk + Semgrep</div>
         </div>}
-        {loginStep==='email'&&<div className="fade-up-1"><p className={styles.loginDesc}>Enter your email.</p><input className={styles.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleEmailContinue()} autoFocus/>{error&&<p style={{color:'#ff4466',fontSize:'0.72rem',marginBottom:8}}>{error}</p>}<button className={styles.btnPrimary} onClick={handleEmailContinue}>Continue →</button><button className={styles.btnGhost} onClick={()=>setLoginStep('home')}>← Back</button></div>}
-        {loginStep==='choose2fa'&&<div className="fade-up-1"><p className={styles.loginDesc}><strong style={s.cyan}>Choose 2FA</strong></p>{hasBiometric&&<button className={styles.btnPrimary} onClick={()=>{setLoginStep('biometric');handleBiometricAuth()}}>👆 Fingerprint / Face ID</button>}<button className={hasBiometric?styles.btnSecondary:styles.btnPrimary} onClick={()=>setLoginStep('totp')}>🔢 Google Authenticator</button><button className={styles.btnGhost} onClick={()=>setLoginStep('email')}>← Back</button></div>}
-        {loginStep==='biometric'&&<div className="fade-up-1"><p className={styles.loginDesc}>👆 Biometric Verification</p><div style={{textAlign:'center',fontSize:'3rem',margin:'20px 0'}}>👆</div><button className={styles.btnPrimary} onClick={handleBiometricAuth}>👆 Authenticate</button>{error&&<p style={{color:'#ff4466',fontSize:'0.72rem',textAlign:'center',marginTop:8}}>{error}</p>}<button className={styles.btnGhost} onClick={()=>setLoginStep('choose2fa')}>← Back</button></div>}
-        {loginStep==='totp'&&<div className="fade-up-1"><p className={styles.loginDesc}>🔢 Enter 6-digit code</p><input className={styles.input} type="text" maxLength={6} placeholder="000000" value={totpCode} onChange={e=>setTotpCode(e.target.value.replace(/\D/g,'').slice(0,6))} autoFocus/>{error&&<p style={{color:'#ff4466',fontSize:'0.72rem',marginBottom:8}}>{error}</p>}<button className={styles.btnPrimary} onClick={handleTotpAuth} disabled={totpCode.length!==6}>Verify →</button><button className={styles.btnGhost} onClick={()=>setLoginStep('choose2fa')}>← Back</button></div>}
-        {loginStep==='creating'&&<div className={styles.creating+' fade-up-1'}><div className={styles.spinner}/><p>Setting up wallet...</p><p className={styles.creatingNote}>5 chains · Charts · News · Alerts</p></div>}
+
+        {loginStep==='email'&&<div className="fade-up-1">
+          <p className={styles.loginDesc}>Enter your email.</p>
+          <input className={styles.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleEmailContinue()} autoFocus/>
+          {error&&<p style={{color:'#ff4466',fontSize:'0.72rem',marginBottom:8}}>{error}</p>}
+          <button className={styles.btnPrimary} onClick={handleEmailContinue}>Continue →</button>
+          <button className={styles.btnGhost} onClick={()=>setLoginStep('home')}>← Back</button>
+        </div>}
+
+        {loginStep==='choose2fa'&&<div className="fade-up-1">
+          <p className={styles.loginDesc}><strong style={s.cyan}>Choose 2FA</strong></p>
+          {hasBiometric&&<button className={styles.btnPrimary} onClick={()=>{setLoginStep('biometric');handleBiometricAuth()}}>👆 Fingerprint / Face ID</button>}
+          <button className={hasBiometric?styles.btnSecondary:styles.btnPrimary} onClick={()=>setLoginStep('totp')}>🔢 Google Authenticator</button>
+          <button className={styles.btnGhost} onClick={()=>setLoginStep('email')}>← Back</button>
+        </div>}
+
+        {loginStep==='biometric'&&<div className="fade-up-1">
+          <p className={styles.loginDesc}>👆 Biometric Verification</p>
+          <div style={{textAlign:'center',fontSize:'3rem',margin:'20px 0'}}>👆</div>
+          <button className={styles.btnPrimary} onClick={handleBiometricAuth}>👆 Authenticate</button>
+          {error&&<p style={{color:'#ff4466',fontSize:'0.72rem',textAlign:'center',marginTop:8}}>{error}</p>}
+          <button className={styles.btnGhost} onClick={()=>setLoginStep('choose2fa')}>← Back</button>
+        </div>}
+
+        {loginStep==='totp'&&<div className="fade-up-1">
+          <p className={styles.loginDesc}>🔢 Enter 6-digit code</p>
+          <input className={styles.input} type="text" maxLength={6} placeholder="000000" value={totpCode} onChange={e=>setTotpCode(e.target.value.replace(/\D/g,'').slice(0,6))} autoFocus/>
+          {error&&<p style={{color:'#ff4466',fontSize:'0.72rem',marginBottom:8}}>{error}</p>}
+          <button className={styles.btnPrimary} onClick={handleTotpAuth} disabled={totpCode.length!==6}>Verify →</button>
+          <button className={styles.btnGhost} onClick={()=>setLoginStep('choose2fa')}>← Back</button>
+        </div>}
+
+        {loginStep==='creating'&&<div className={styles.creating+' fade-up-1'}>
+          <div className={styles.spinner}/>
+          <p>Setting up wallet...</p>
+          <p className={styles.creatingNote}>5 chains · Charts · News · Alerts</p>
+        </div>}
+
       </div>
-      <div className={styles.loginFooter}>⬡ THE WALL · THEWIN · 2026 · INR → DXB · 🇮🇳🇦🇪🪐₿</div>
+      <div className={styles.loginFooter}>⬡ THE WALL · DWIN · 2026 · IND → DXB · 🇮🇳🇦🇪</div>
     </div>
   )
 
