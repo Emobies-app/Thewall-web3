@@ -1,80 +1,124 @@
-# ⬡ THE WALL — Web3 Crypto Portfolio
-**Kannur → Dubai · DWIN · 2026**
+# ⬡ THE WALL — Web3 Wallet
 
-Multi-chain Web3 portfolio tracker with gasless smart wallet login.
+> **Protect your invisible valuable Currencies.**
+> *Web3 · 5 Chains · Gasless · No Seed Phrase*
 
----
-
-## Stack
-- **Next.js 14** + TypeScript
-- **Alchemy Account Kit** — Smart wallet, no seed phrase
-- **Gasless transactions** via `Emobies-Sponsorship-v1` policy (54+ networks)
-- **Multi-chain**: ETH · SOL · BNB · Polygon · Bitcoin
-- **Deployed on Vercel**
+Built by **Thewin** (Dwin 05) · India → Dubai                                         🇮🇳🇦🇪
 
 ---
 
-## Setup
+## 🌍 Live
 
-### 1. Clone & install
+**[thewall.e-mobies.com](https://thewall.e-mobies.com)**
+
+---
+
+## ⚡ Features
+
+- 🔗 **WalletConnect** — 530+ wallets (MetaMask, Phantom, Google)
+- ⚡ **Gasless** — Powered by Alchemy Gas Manager
+- 🔐 **No Seed Phrase** — Smart wallet via email/biometric
+- 📊 **Charts** — CoinGecko candlestick (1D/7D/1M/3M/1Y)
+- 📰 **News** — CoinDesk live RSS
+- 🔔 **Alerts** — Browser price notifications
+- 🌐 **DApp Browser** — Uniswap, OpenSea, Aave, 1inch
+- 🦋 **Emowall AI Web3** — Claude-powered AI assistant
+- 🔄 **Real Swap** — UniSwap V3 integration
+- ❄️ **Freeze Wallet** — Emergency PIN lock
+
+---
+
+## ⛓️ 5 Chains
+
+| Name | Symbol | Chain |
+|------|--------|-------|
+| 🌍 Earth | ETH | Ethereum |
+| 🌟 Soul | SOL | Solana |
+| 🌙 Moon | MON | Monad |
+| 🪐 Orbit | ARB | Arbitrum |
+| ₿ Birth | BTC | Bitcoin |
+
+---
+
+## 🛠️ Tech Stack
+
+```
+Next.js 14       — Framework
+Alchemy          — Blockchain RPC + Gas Manager
+WalletConnect    — Wallet integration (Reown AppKit)
+CoinGecko        — Price + Charts
+CoinDesk RSS     — News
+Anthropic Claude — Emowall AI Web3
+NileDB           — Database (Postgres)
+Linear           — Project management
+Apollo GraphQL   — API layer
+Vercel           — Deployment
+```
+
+---
+
+## 🚀 Deploy
+
 ```bash
-git clone https://github.com/Emobies05/Thewall
-cd Thewall
+# Clone
+git clone https://github.com/Emobies-app/Thewall-web3
+
+# Install
 npm install
-```
 
-### 2. Configure environment
-```bash
-cp .env.local.example .env.local
-```
+# Environment variables
+ALCHEMY_API_KEY=
+ALCHEMY_GAS_POLICY_ID=
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=
+HELIUS_API_KEY=
+ETHERSCAN_API_KEY=
+WALL_CLOUDE_AI=
+NILEDB_POSTGRES_URL=
 
-Edit `.env.local` and fill in:
-- `NEXT_PUBLIC_ALCHEMY_API_KEY` — from https://dashboard.alchemy.com → TheWall Eth app
-- `ALCHEMY_SOL_API_KEY` — from TheWall Sol app
-- `NEXT_PUBLIC_ALCHEMY_ACCOUNT_KIT_API_KEY` — for smart wallet login
-- `NEXT_PUBLIC_GAS_POLICY_ID` — `Emobies-Sponsorship-v1` policy ID
-
-### 3. Run locally
-```bash
+# Run
 npm run dev
 ```
-Open http://localhost:3000
-
-### 4. Deploy to Vercel
-```bash
-vercel --prod
-```
-Add all `.env.local` values to Vercel environment variables.
 
 ---
 
-## Wallets
-| Wallet | Address |
-|---|---|
-| Main (ETH) | `0xba24d47e...f3f4e1` |
-| Treasury | `0xecbdebb62d636808a3e94183070585814127393d` |
-| Solana | `5auZoWJxJodSU8dwgKmAfmphv5Z9Su3HAzEdLz1EUZs7` |
+## 🔐 Security
+
+- CodeQL Advanced scanning
+- Snyk vulnerability detection
+- Semgrep static analysis
+- PIN-based wallet freeze
+- Biometric 2FA support
 
 ---
 
-## Architecture
-```
-Frontend (Next.js/Vercel)
-       ↓
-/api/prices     → CoinGecko (live token prices, 60s cache)
-/api/balance    → Alchemy ETH RPC (wallet balances)
-/api/solana     → Alchemy SOL RPC (SOL balance)
-       ↓
-Webhooks → Alchemy (Solana address activity)
-       ↓
-Smart Wallet → Alchemy Account Kit (gasless, no seed phrase)
-```
+## 🦋 Emowall AI Web3
+
+AI-powered assistant built with Claude (Anthropic).  
+Ask about swaps, chains, gas, wallets — available 24/7.
 
 ---
 
-## Revenue Goal
-**$6,200,000 (₹52 Crore)**
+## 📱 Part of Dwin Universe
+
+| App | Description |
+|-----|-------------|
+| 📱 Emobies | Mobile repair platform |
+| 🦋 Emowall AI | Multi-gen AI safety |
+| 🧱 TheWall | Web3 wallet (this) |
+| 🛍️ Eshoppee | Local marketplace |
+| 🎂 Ecakey | Home bakers network |
+| 🚗 Ddrive | Driving confidence |
+| 🌿 Ddrink | Natural drinks |
+| 🎬 Dott | Watch together |
 
 ---
 
-⬡ THE WALL · EMOBIES · EMOWALL AI 2.0
+## 👤 Developer
+
+**Divin K K** (Emobies05)  
+Kerala → Dubai · Self-taught · Built on phone using Termux + Acode  
+[github.com/Emobies-app](https://github.com/Emobies-app)
+
+---
+
+*"Follow the flow" ·🦋*
