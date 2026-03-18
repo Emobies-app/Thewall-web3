@@ -283,7 +283,7 @@ export default function TheWall() {
         {loginStep==='totp'&&<div className="fade-up-1"><p className={styles.loginDesc}>🔢 Enter 6-digit code</p><input className={styles.input} type="text" maxLength={6} placeholder="000000" value={totpCode} onChange={e=>setTotpCode(e.target.value.replace(/\D/g,'').slice(0,6))} autoFocus/>{error&&<p style={{color:'#ff4466',fontSize:'0.72rem',marginBottom:8}}>{error}</p>}<button className={styles.btnPrimary} onClick={handleTotpAuth} disabled={totpCode.length!==6}>Verify →</button><button className={styles.btnGhost} onClick={()=>setLoginStep('choose2fa')}>← Back</button></div>}
         {loginStep==='creating'&&<div className={styles.creating+' fade-up-1'}><div className={styles.spinner}/><p>Setting up wallet...</p><p className={styles.creatingNote}>5 chains · Charts · News · Alerts</p></div>}
       </div>
-      <div className={styles.loginFooter}>⬡ THE WALL · DWIN · 2026 · KANNUR → DUBAI · 🌍🌟🌙🪐₿</div>
+      <div className={styles.loginFooter}>⬡ THE WALL · THEWIN · 2026 · INR → DXB · 🇮🇳🇦🇪🪐₿</div>
     </div>
   )
 
