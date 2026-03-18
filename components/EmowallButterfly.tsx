@@ -244,7 +244,7 @@ export function EmowallButterfly({ size = 120, state = 'idle', onTap }: Props) {
     <canvas
       ref={canvasRef}
       width={size}
-      height={size}
+      height={size + 20}
       onClick={onTap}
       style={{ cursor: onTap ? 'pointer' : 'default', display: 'block' }}
     />
