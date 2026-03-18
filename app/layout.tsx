@@ -1,13 +1,22 @@
-import type { ReactNode } from 'react';
-import { EmowallAIChat } from '@/components/EmowallButterfly';
+import type { Metadata } from 'next'
+import type { ReactNode } from 'react'
+import './globals.css'
 
-export default function RootLayout({ children })  
+export const metadata: Metadata = {
+  title: '⬡ THE WALL',
+  description: 'Web3 Wallet · 5 Chains · Gasless · No Seed Phrase',
+}
+
+export default function RootLayout({ 
+  children 
+}: { 
+  children: ReactNode 
+}) {
   return (
     <html lang="en">
       <body>
         {children}
-        <EmowallAIChat />
       </body>
     </html>
-  );
+  )
 }
