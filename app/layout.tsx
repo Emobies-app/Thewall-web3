@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import './globals.css'
+import { WalletProvider } from './context/wallet'
+import { EmowallAIChat } from '@/components/EmowallButterfly'
 
 export const metadata: Metadata = {
   title: '⬡ THE WALL',
@@ -19,7 +21,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        {children}
+        <WalletProvider>
+          {children}
+          <EmowallAIChat />
+        </WalletProvider>
       </body>
     </html>
   )
