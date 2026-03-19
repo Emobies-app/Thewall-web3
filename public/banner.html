@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TheWall Wallet</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --cyan:#00f5e4; --purple:#7b2fff; --indigo:#2d1b69; --dark:#060c1a; }
+  body { background:#04080f; display:flex; justify-content:center; align-items:center; min-height:100vh; font-family:'Rajdhani',sans-serif; }
+  .banner { position:relative; width:900px; height:506px; background:radial-gradient(ellipse at 20% 60%,#0d1a3a 0%,#060c1a 60%); overflow:hidden; border-radius:12px; display:flex; align-items:center; justify-content:space-between; padding:0 60px 0 40px; }
+  .banner::before { content:''; position:absolute; inset:0; background-image:repeating-linear-gradient(115deg,transparent,transparent 60px,rgba(255,255,255,.012) 60px,rgba(255,255,255,.012) 61px),repeating-linear-gradient(25deg,transparent,transparent 80px,rgba(255,255,255,.008) 80px,rgba(255,255,255,.008) 81px); pointer-events:none; }
+  .glow-left { position:absolute; left:-60px; top:50%; transform:translateY(-50%); width:420px; height:420px; background:radial-gradient(circle,rgba(123,47,255,.35) 0%,transparent 70%); pointer-events:none; }
+  .glow-right { position:absolute; right:0; top:30%; width:300px; height:300px; background:radial-gradient(circle,rgba(0,245,228,.18) 0%,transparent 70%); pointer-events:none; }
+  .hex-wrap { position:relative; width:360px; height:360px; flex-shrink:0; animation:float 4s ease-in-out infinite; }
+  @keyframes float { 0%,100%{transform:translateY(0px) rotate(-2deg);} 50%{transform:translateY(-14px) rotate(-2deg);} }
+  .hex-svg { width:100%; height:100%; filter:drop-shadow(0 0 30px rgba(123,47,255,.7)) drop-shadow(0 20px 40px rgba(0,0,0,.8)); }
+  .wallet { position:absolute; top:50%; left:50%; transform:translate(-50%,-54%) rotate(-8deg); width:150px; height:100px; }
+  .wallet-body { width:150px; height:90px; background:linear-gradient(145deg,#1a2340,#0d1525); border-radius:10px; border:1px solid rgba(0,245,228,.2); position:relative; box-shadow:0 8px 32px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.05); }
+  .wallet-body::before { content:'W'; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:'Orbitron',sans-serif; font-size:36px; font-weight:900; color:rgba(0,245,228,.12); letter-spacing:-2px; }
+  .wallet-clasp { position:absolute; right:-6px; top:50%; transform:translateY(-50%); width:12px; height:12px; background:radial-gradient(circle,#bbb,#666); border-radius:50%; box-shadow:0 0 6px rgba(0,0,0,.5); }
+  .coin { position:absolute; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; box-shadow:0 4px 14px rgba(0,0,0,.5); animation:coinPulse 3s ease-in-out infinite; }
+  @keyframes coinPulse { 0%,100%{filter:brightness(1);} 50%{filter:brightness(1.25);} }
+  .coin-btc { width:52px; height:52px; background:radial-gradient(circle at 35% 35%,#4caf50,#1b5e20); border:2px solid #66bb6a; top:26px; left:32px; color:#fff; font-size:18px; animation-delay:.3s; z-index:5; }
+  .coin-eth { width:44px; height:44px; background:radial-gradient(circle at 35% 35%,#9c9c9c,#3a3a5c); border:2px solid #aaa; top:18px; left:72px; color:#ddd; font-size:15px; animation-delay:.7s; z-index:4; }
+  .coin-sol { width:40px; height:40px; background:radial-gradient(circle at 35% 35%,#a855f7,#6d28d9); border:2px solid #c084fc; top:14px; left:108px; color:#fff; font-size:8px; animation-delay:1s; z-index:3; }
+  .coin-arb { width:38px; height:38px; background:radial-gradient(circle at 35% 35%,#00bcd4,#006064); border:2px solid #4dd0e1; top:80px; left:48px; color:#fff; font-size:8px; animation-delay:.5s; z-index:3; }
+  .coin-mon { width:34px; height:34px; background:radial-gradient(circle at 35% 35%,#00e676,#00600f); border:2px solid #69f0ae; top:85px; left:110px; color:#fff; font-size:8px; animation-delay:1.2s; z-index:2; }
+  .text-side { flex:1; padding-left:30px; position:relative; z-index:2; }
+  .brand-the { font-family:'Orbitron',sans-serif; font-size:28px; font-weight:700; color:var(--cyan); text-shadow:0 0 20px rgba(0,245,228,.8),0 0 60px rgba(0,245,228,.3); letter-spacing:4px; display:block; animation:textGlow 2.5s ease-in-out infinite alternate; }
+  .brand-wall { font-family:'Orbitron',sans-serif; font-size:54px; font-weight:900; line-height:1; letter-spacing:2px; background:linear-gradient(135deg,#00f5e4,#7b2fff,#00f5e4); background-size:200%; -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; animation:shimmer 3s linear infinite,textGlow 2.5s ease-in-out infinite alternate; display:block; }
+  .brand-wallet { font-family:'Orbitron',sans-serif; font-size:44px; font-weight:900; line-height:1; letter-spacing:3px; background:linear-gradient(135deg,#7b2fff,#00f5e4,#7b2fff); background-size:200%; -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; animation:shimmer 3s linear infinite reverse; display:block; margin-bottom:14px; }
+  @keyframes shimmer { 0%{background-position:0% 50%;} 100%{background-position:200% 50%;} }
+  @keyframes textGlow { from{filter:drop-shadow(0 0 8px rgba(0,245,228,.5));} to{filter:drop-shadow(0 0 20px rgba(0,245,228,.9));} }
+  .tagline { display:inline-block; background:linear-gradient(90deg,var(--purple),#5b0fff); color:#fff; font-family:'Rajdhani',sans-serif; font-size:13px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; padding:6px 16px; clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%); margin-bottom:14px; }
+  .wallet-id { font-family:'Rajdhani',sans-serif; font-size:13px; color:rgba(255,255,255,.45); letter-spacing:.06em; margin-top:6px; }
+  .wallet-id span { color:rgba(0,245,228,.55); }
+  .chains { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .chain-badge { padding:3px 10px; border-radius:12px; font-size:11px; font-family:'Orbitron',sans-serif; letter-spacing:1px; border:1px solid; }
+  .sparkle { position:absolute; bottom:30px; right:40px; width:22px; height:22px; }
+  .sparkle::before,.sparkle::after { content:''; position:absolute; background:var(--cyan); }
+  .sparkle::before { width:2px; height:22px; top:0; left:50%; transform:translateX(-50%); box-shadow:0 0 8px var(--cyan); }
+  .sparkle::after { width:22px; height:2px; top:50%; left:0; transform:translateY(-50%); box-shadow:0 0 8px var(--cyan); }
+  .scanlines { position:absolute; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.06) 3px,rgba(0,0,0,.06) 4px); pointer-events:none; }
+  .gasless-badge { display:inline-flex; align-items:center; gap:6px; background:rgba(0,245,228,.08); border:1px solid rgba(0,245,228,.25); border-radius:6px; padding:5px 12px; margin-top:10px; font-size:12px; color:var(--cyan); letter-spacing:.1em; }
+</style>
+</head>
+<body>
+<div class="banner">
+  <div class="glow-left"></div>
+  <div class="glow-right"></div>
+  <div class="scanlines"></div>
+  <div class="hex-wrap">
+    <svg class="hex-svg" viewBox="0 0 360 360" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="hg1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#6a1fd0"/><stop offset="100%" stop-color="#2d0a6e"/></linearGradient>
+        <linearGradient id="hg2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#4a148c"/><stop offset="100%" stop-color="#1a0050"/></linearGradient>
+        <filter id="shadow"><feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#7b2fff" flood-opacity="0.5"/></filter>
+      </defs>
+      <polygon points="180,10 230,50 210,50 180,28 150,50 130,50" fill="url(#hg1)" stroke="#9c4dff" stroke-width="1"/>
+      <polygon points="230,50 310,130 300,145 250,90 210,50" fill="url(#hg2)" stroke="#7b2fff" stroke-width="1"/>
+      <polygon points="310,130 330,230 310,240 300,145" fill="url(#hg1)" stroke="#9c4dff" stroke-width="1"/>
+      <polygon points="330,230 280,310 260,310 290,250 310,240" fill="url(#hg2)" stroke="#7b2fff" stroke-width="1"/>
+      <polygon points="280,310 180,350 180,328 260,310" fill="url(#hg1)" stroke="#9c4dff" stroke-width="1"/>
+      <polygon points="180,350 80,310 100,250 120,290 180,328" fill="url(#hg2)" stroke="#7b2fff" stroke-width="1"/>
+      <polygon points="80,310 50,230 60,145 70,240 100,250" fill="url(#hg1)" stroke="#9c4dff" stroke-width="1"/>
+      <polygon points="50,230 70,130 110,90 150,50 130,50 60,145" fill="url(#hg2)" stroke="#7b2fff" stroke-width="1"/>
+      <polygon points="180,70 260,115 260,245 180,290 100,245 100,115" fill="#0d0828" stroke="#5b0fff" stroke-width="1.5" filter="url(#shadow)"/>
+      <polygon points="180,80 252,122 252,238 180,280 108,238 108,122" fill="none" stroke="rgba(123,47,255,0.4)" stroke-width="1"/>
+      <ellipse cx="180" cy="180" rx="55" ry="40" fill="rgba(123,47,255,0.2)"/>
+    </svg>
+    <div class="wallet">
+      <div class="wallet-body"><div class="wallet-clasp"></div></div>
+      <div class="coin coin-btc">₿</div>
+      <div class="coin coin-eth">Ξ</div>
+      <div class="coin coin-sol">SOL</div>
+      <div class="coin coin-arb">ARB</div>
+      <div class="coin coin-mon">MON</div>
+    </div>
+  </div>
+  <div class="text-side">
+    <span class="brand-the">The</span>
+    <span class="brand-wall">Wall</span>
+    <span class="brand-wallet">Wallet</span>
+    <div class="tagline">⚡ Gasless · No Seed Phrase · 5 Chains</div>
+    <div class="chains">
+      <span class="chain-badge" style="color:#627eea;border-color:#627eea44">🌍 ETH</span>
+      <span class="chain-badge" style="color:#9945ff;border-color:#9945ff44">🌟 SOL</span>
+      <span class="chain-badge" style="color:#836ef9;border-color:#836ef944">🌙 MON</span>
+      <span class="chain-badge" style="color:#12aaff;border-color:#12aaff44">🪐 ARB</span>
+      <span class="chain-badge" style="color:#f7931a;border-color:#f7931a44">₿ BTC</span>
+    </div>
+    <div class="gasless-badge">⚡ Powered by Alchemy · WalletConnect · Claude AI</div>
+    <div class="wallet-id" style="margin-top:10px">🌐 <span>thewall.e-mobies.com</span></div>
+  </div>
+  <div class="sparkle"></div>
+</div>
+</body>
+</html>
