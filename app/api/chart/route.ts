@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 // ✅ Whitelist — only allowed coins
 const ALLOWED_COINS: Record<string, string> = {
   ethereum:     'ethereum',
@@ -22,7 +24,7 @@ export async function GET(req: NextRequest) {
     const coinParam = searchParams.get('coin') || 'ethereum'
     const coin = ALLOWED_COINS[coinParam]
     if (!coin) {
-      return NextResponse.json({ error: 'Invalid coin' }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid coin', prices: [] }, { status: 400 })
     }
 
     // ✅ Validate days against whitelist
