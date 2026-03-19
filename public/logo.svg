@@ -1,16 +1,101 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <polygon 
-    points="50,5 95,27.5 95,72.5 50,95 5,72.5 5,27.5"
-    fill="#050A14"
-    stroke="#00e5ff"
-    stroke-width="2"
-  />
-  <text
-    x="50" y="58"
-    text-anchor="middle"
-    font-family="monospace"
-    font-size="28"
-    font-weight="900"
-    fill="#00e5ff"
-  >W</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d0828"/>
+      <stop offset="100%" stop-color="#060c1a"/>
+    </linearGradient>
+    <linearGradient id="hexTop" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9b59ff"/>
+      <stop offset="100%" stop-color="#5a1bc7"/>
+    </linearGradient>
+    <linearGradient id="hexSide" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6a1fd0"/>
+      <stop offset="100%" stop-color="#2d0a6e"/>
+    </linearGradient>
+    <linearGradient id="walletGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a2a4a"/>
+      <stop offset="100%" stop-color="#0d1525"/>
+    </linearGradient>
+    <linearGradient id="coinBtc" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4caf50"/>
+      <stop offset="100%" stop-color="#1b5e20"/>
+    </linearGradient>
+    <linearGradient id="coinEth" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9e9e9e"/>
+      <stop offset="100%" stop-color="#3a3a5c"/>
+    </linearGradient>
+    <linearGradient id="coinSol" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+    <linearGradient id="wGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00f5e4"/>
+      <stop offset="100%" stop-color="#7b2fff"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="innerShadow">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="100" fill="url(#bgGrad)"/>
+  <ellipse cx="256" cy="256" rx="180" ry="180" fill="rgba(123,47,255,0.15)"/>
+  <ellipse cx="256" cy="256" rx="100" ry="100" fill="rgba(123,47,255,0.1)"/>
+
+  <polygon points="256,96 395,176 375,186 256,116 137,186 117,176" fill="url(#hexTop)" stroke="#9c4dff" stroke-width="1.5"/>
+  <polygon points="395,176 415,256 395,256 375,186" fill="url(#hexSide)" stroke="#7b2fff" stroke-width="1.5"/>
+  <polygon points="415,256 395,336 375,326 395,256" fill="url(#hexTop)" stroke="#9c4dff" stroke-width="1.5"/>
+  <polygon points="395,336 256,416 256,396 375,326" fill="url(#hexSide)" stroke="#7b2fff" stroke-width="1.5"/>
+  <polygon points="256,416 117,336 137,326 256,396" fill="url(#hexTop)" stroke="#9c4dff" stroke-width="1.5"/>
+  <polygon points="117,336 97,256 117,256 137,326" fill="url(#hexSide)" stroke="#7b2fff" stroke-width="1.5"/>
+  <polygon points="97,256 117,176 137,186 117,256" fill="url(#hexTop)" stroke="#9c4dff" stroke-width="1.5"/>
+
+  <polygon points="256,116 375,186 375,326 256,396 137,326 137,186" fill="#08051a" stroke="#5b0fff" stroke-width="2" filter="url(#innerShadow)"/>
+  <polygon points="256,126 365,192 365,320 256,386 147,320 147,192" fill="none" stroke="rgba(0,245,228,0.15)" stroke-width="1.5"/>
+  <ellipse cx="256" cy="256" rx="70" ry="55" fill="rgba(123,47,255,0.3)" filter="url(#softGlow)"/>
+
+  <rect x="186" y="220" width="148" height="98" rx="14" fill="url(#walletGrad)" stroke="rgba(0,245,228,0.25)" stroke-width="2"/>
+  <rect x="186" y="220" width="148" height="30" rx="14" fill="#131f35" stroke="rgba(0,245,228,0.15)" stroke-width="1"/>
+  <rect x="186" y="238" width="148" height="12" fill="#131f35"/>
+  <line x1="200" y1="270" x2="320" y2="270" stroke="rgba(0,245,228,0.1)" stroke-width="1.5"/>
+  <line x1="200" y1="285" x2="280" y2="285" stroke="rgba(0,245,228,0.07)" stroke-width="1"/>
+  <circle cx="330" cy="269" r="9" fill="#888" stroke="#555" stroke-width="1.5"/>
+  <circle cx="330" cy="269" r="5" fill="#aaa"/>
+  <text x="256" y="300" text-anchor="middle" font-family="Georgia, serif" font-size="42" font-weight="bold" fill="url(#wGrad)" opacity="0.22" letter-spacing="-2">W</text>
+
+  <circle cx="210" cy="208" r="30" fill="url(#coinBtc)" stroke="#66bb6a" stroke-width="2.5" filter="url(#softGlow)"/>
+  <text x="210" y="218" text-anchor="middle" font-size="24" font-weight="bold" fill="#ffffff">₿</text>
+
+  <circle cx="262" cy="196" r="26" fill="url(#coinEth)" stroke="#bbb" stroke-width="2" filter="url(#softGlow)"/>
+  <text x="262" y="205" text-anchor="middle" font-size="20" font-weight="bold" fill="#eeeeee">Ξ</text>
+
+  <circle cx="310" cy="206" r="22" fill="url(#coinSol)" stroke="#c084fc" stroke-width="2" filter="url(#softGlow)"/>
+  <text x="310" y="214" text-anchor="middle" font-size="11" font-weight="bold" fill="#ffffff">SOL</text>
+
+  <circle cx="198" cy="330" r="16" fill="#00600f" stroke="#69f0ae" stroke-width="1.5"/>
+  <text x="198" y="336" text-anchor="middle" font-size="12" font-weight="bold" fill="#69f0ae">ARB</text>
+
+  <circle cx="314" cy="328" r="14" fill="#006064" stroke="#4dd0e1" stroke-width="1.5"/>
+  <text x="314" y="334" text-anchor="middle" font-size="9" font-weight="bold" fill="#e0f7fa">MON</text>
+
+  <text x="256" y="88" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="28" font-weight="bold" letter-spacing="2" fill="#00f5e4" opacity="0.55" filter="url(#glow)">TW</text>
+
+  <rect x="136" y="428" width="240" height="36" rx="8" fill="rgba(123,47,255,0.35)"/>
+  <rect x="136" y="428" width="240" height="36" rx="8" fill="none" stroke="rgba(0,245,228,0.2)" stroke-width="1"/>
+  <text x="256" y="452" text-anchor="middle" font-family="'Courier New', Courier, monospace" font-size="14" font-weight="bold" letter-spacing="4" fill="#00f5e4">WALLET</text>
+
+  <line x1="456" y1="54" x2="456" y2="72" stroke="#00f5e4" stroke-width="2" opacity="0.6"/>
+  <line x1="447" y1="63" x2="465" y2="63" stroke="#00f5e4" stroke-width="2" opacity="0.6"/>
+  <line x1="56" y1="448" x2="56" y2="462" stroke="#7b2fff" stroke-width="2" opacity="0.5"/>
+  <line x1="49" y1="455" x2="63" y2="455" stroke="#7b2fff" stroke-width="2" opacity="0.5"/>
+
+  <rect x="3" y="3" width="506" height="506" rx="98" fill="none" stroke="rgba(0,245,228,0.1)" stroke-width="2"/>
 </svg>
