@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 // ✅ Safe HTML entity decode — no XSS risk
 function decodeEntities(str: string): string {
   return str
