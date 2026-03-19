@@ -381,7 +381,7 @@ export default function TheWall() {
         </div>}
 
       </div>
-      <div className={styles.loginFooter}>⬡ THE WALL · DWIN · 2026 · IND → DXB · 🇮🇳🇦🇪</div>
+      <div className={styles.loginFooter}>⬡ THE WALL · Thewin · 2026 · IND → DXB · 🇮🇳🇦🇪</div>
     </div>
   )
 
