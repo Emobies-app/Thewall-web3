@@ -352,11 +352,10 @@ export default function TheWall() {
         </div>}
 
         {loginStep==='choose2fa'&&<div className="fade-up-1">
-          <p className={styles.loginDesc}><strong style={s.cyan}>Choose 2FA</strong></p>
-          {hasBiometric&&<button className={styles.btnPrimary} onClick={()=>{setLoginStep('biometric');handleBiometricAuth()}}>👆 Fingerprint / Face ID</button>}
-          <button className={hasBiometric?styles.btnSecondary:styles.btnPrimary} onClick={()=>setLoginStep('totp')}>🔢 Google Authenticator</button>
-          <button className={styles.btnGhost} onClick={()=>setLoginStep('email')}>← Back</button>
-        </div>}
+  <p className={styles.loginDesc}><strong style={s.cyan}>Choose 2FA</strong></p>
+  <button className={styles.btnPrimary} onClick={()=>setLoginStep('totp')}>🔢 Google Authenticator</button>
+  <button className={styles.btnGhost} onClick={()=>setLoginStep('email')}>← Back</button>
+</div>}
 
         {loginStep==='biometric'&&<div className="fade-up-1">
           <p className={styles.loginDesc}>👆 Biometric Verification</p>
