@@ -5,7 +5,7 @@ import styles from './page.module.css'
 interface TokenPrice  { price: number; change24h: number }
 interface Prices      { [symbol: string]: TokenPrice }
 interface WalletData  { address: string; ethBalance: number; solBalance?: number; arbBalance?: number; tokenBalances: { contractAddress: string; tokenBalance: string }[] }
-interface UserWallet  { address: string; type: 'smart'|'external'; email?: string; twoFaMethod?: 'biometric'|'totp' }
+interface UserWallet  { address: string; type: 'smart'|'external'; email?: string; twoFaMethod?: 'totp' }
 interface NewsItem    { title: string; url: string; published: string; source: string; currencies: string[]; positive: number; negative: number }
 interface TxItem      { hash: string; from: string; to: string; value: string; time: string; gas: string; status: string; method: string }
 interface SwapState   { fromToken: string; toToken: string; amount: string; estimatedOut: string; loading: boolean; error: string; success: string; priceImpact: number; route: string }
@@ -39,7 +39,7 @@ type BottomTab = 'home'|'trade'|'markets'|'settings'
 
 export default function TheWall() {
   const [screen, setScreen]         = useState<'login'|'dashboard'>('login')
-  const [loginStep, setLoginStep]   = useState<'home'|'email'|'choose2fa'|'biometric'|'totp'|'creating'>('home')
+  const [loginStep, setLoginStep]   = useState<'home'|'email'|'choose2fa'|'totp'|'creating'>('home')
   const [email, setEmail]           = useState('')
   const [totpCode, setTotpCode]     = useState('')
   const [error, setError]           = useState('')
@@ -48,7 +48,6 @@ export default function TheWall() {
   const [walletData, setWalletData] = useState<WalletData|null>(null)
   const [bottomTab, setBottomTab]   = useState<BottomTab>('home')
   const [refreshing, setRefreshing] = useState(false)
-  const [hasBiometric, setHasBiometric] = useState(false)
   const [searchOpen, setSearchOpen]     = useState(false)
   const [searchQuery, setSearchQuery]   = useState('')
   const [searchResult, setSearchResult] = useState<SearchResult|null>(null)
@@ -87,10 +86,7 @@ export default function TheWall() {
   const [pinError, setPinError]       = useState('')
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
-  useEffect(() => {
-    PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(setHasBiometric).catch(() => setHasBiometric(false))
-    checkChainStatus()
-  }, [])
+  useEffect(() => { checkChainStatus() }, [])
 
   const checkChainStatus = async () => {
     for (const c of [{id:'earth',url:'https://eth.llamarpc.com'},{id:'orbit',url:'https://arb1.arbitrum.io/rpc'},{id:'moon',url:'https://rpc.monad.xyz'}]) {
@@ -219,14 +215,6 @@ export default function TheWall() {
   }
 
   const handleEmailContinue=()=>{if(!email.includes('@'))return;setError('');setLoginStep('choose2fa')}
-  const handleBiometricAuth=async()=>{
-    setError('')
-    try {
-      const ch=new Uint8Array(32);window.crypto.getRandomValues(ch)
-      const c=await navigator.credentials.get({publicKey:{challenge:ch,rpId:window.location.hostname,allowCredentials:[],userVerification:'preferred',timeout:60000}} as CredentialRequestOptions)
-      if(c){setLoginStep('creating');await new Promise(r=>setTimeout(r,1500));setUser({address:MAIN_WALLET,type:'smart',email,twoFaMethod:'biometric'});await fetchBalance(MAIN_WALLET);setScreen('dashboard')}
-    } catch { setError('Biometric failed. Try Google Authenticator.') }
-  }
   const handleTotpAuth=async()=>{
     if(totpCode.length!==6)return;setError('')
     try {
@@ -243,10 +231,10 @@ export default function TheWall() {
   const goalPct=Math.min((portfolioTotal/GOAL_USD)*100,100)
   const fmt=(n:number)=>n>=1000?'$'+(n/1000).toFixed(1)+'K':'$'+n.toFixed(2)
   const fmtAddr=(a:string)=>a.slice(0,8)+'...'+a.slice(-6)
-  const walletLabel=user?.type==='smart'?'SMART WALLET '+(user.twoFaMethod==='biometric'?'👆':'🔢'):'MAIN WALLET'
+  const walletLabel=user?.type==='smart'?'SMART WALLET 🔢':'MAIN WALLET'
   const s = { card:{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:12,padding:16,marginBottom:12} as const, mono:{fontFamily:'var(--font-mono)'} as const, muted:{color:'var(--text-muted)'} as const, cyan:{color:'var(--cyan)'} as const, label:{fontSize:'0.62rem',letterSpacing:'0.1em',color:'var(--text-muted)',marginBottom:6} as const }
 
-  // ── FROZEN SCREEN ──
+  // ── FROZEN ──
   if(frozen) return (
     <div style={{minHeight:'100vh',background:'var(--bg)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24}}>
       <div style={{fontSize:'3rem',marginBottom:16}}>❄️</div>
@@ -263,7 +251,6 @@ export default function TheWall() {
     <div className={styles.loginWrap}>
       <div className={styles.loginCard}>
 
-        {/* LOGO */}
         <div className={styles.logo+' fade-up'}>
           <span className={styles.hexLogo}>⬡</span>
           <div>
@@ -274,70 +261,29 @@ export default function TheWall() {
 
         {loginStep==='home'&&<div className="fade-up-1">
           <p className={styles.loginDesc}>Gasless wallet. No seed phrase.<br/>Charts · News · Alerts · DApps</p>
-
-          {/* FEATURES — single row, colorful, no box overflow */}
-          <div style={{
-            display:'flex', gap:6, flexWrap:'wrap',
-            justifyContent:'center', marginBottom:14,
-          }}>
+          <div style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'center',marginBottom:14}}>
             {[
-              {icon:'⬡', label:'No Seed',  color:'#00ff88'},
-              {icon:'⚡', label:'Gasless',  color:'#f7931a'},
-              {icon:'🔒', label:'2FA',      color:'#ff4466'},
-              {icon:'📊', label:'Charts',   color:'#627eea'},
-              {icon:'📰', label:'News',     color:'#ffffff'},
-              {icon:'🔔', label:'Alerts',   color:'#ffd700'},
-              {icon:'🌐', label:'DApps',    color:'#9945ff'},
-              {icon:'🔄', label:'Swap',     color:'#00e5ff'},
+              {icon:'⬡',label:'No Seed',color:'#00ff88'},
+              {icon:'⚡',label:'Gasless',color:'#f7931a'},
+              {icon:'🔒',label:'2FA',color:'#ff4466'},
+              {icon:'📊',label:'Charts',color:'#627eea'},
+              {icon:'📰',label:'News',color:'#ffffff'},
+              {icon:'🔔',label:'Alerts',color:'#ffd700'},
+              {icon:'🌐',label:'DApps',color:'#9945ff'},
+              {icon:'🔄',label:'Swap',color:'#00e5ff'},
             ].map(f=>(
-              <div key={f.label} style={{
-                display:'flex', alignItems:'center', gap:4,
-                padding:'5px 10px',
-                border:`1px solid ${f.color}44`,
-                borderRadius:20,
-                background:`${f.color}11`,
-                fontSize:'0.68rem',
-                fontFamily:'var(--font-mono)',
-                color: f.color,
-                whiteSpace:'nowrap',
-              }}>
-                <span>{f.icon}</span>
-                <span style={{fontWeight:700}}>{f.label}</span>
+              <div key={f.label} style={{display:'flex',alignItems:'center',gap:4,padding:'5px 10px',border:`1px solid ${f.color}44`,borderRadius:20,background:`${f.color}11`,fontSize:'0.68rem',fontFamily:'var(--font-mono)',color:f.color,whiteSpace:'nowrap'}}>
+                <span>{f.icon}</span><span style={{fontWeight:700}}>{f.label}</span>
               </div>
             ))}
           </div>
-
-          {/* CHAIN STATUS */}
           <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:16,justifyContent:'center'}}>
-            {[
-              {id:'earth', label:'🌍 ETH',  color:'#627eea'},
-              {id:'soul',  label:'🌟 SOL',  color:'#9945ff'},
-              {id:'moon',  label:'🌙 MON',  color:'#836ef9'},
-              {id:'orbit', label:'🪐 ARB',  color:'#12aaff'},
-              {id:'birth', label:'₿ BTC',   color:'#f7931a'},
-            ].map(c=>(
-              <div key={c.id} style={{
-                padding:'4px 10px', borderRadius:20,
-                fontSize:'0.65rem', border:'1px solid',
-                fontFamily:'var(--font-mono)',
-                borderColor: chainStatus[c.id]==='online'
-                  ? `${c.color}55`
-                  : chainStatus[c.id]==='offline'
-                  ? 'rgba(255,68,102,0.3)'
-                  : 'rgba(255,255,255,0.1)',
-                color: chainStatus[c.id]==='online'
-                  ? c.color
-                  : chainStatus[c.id]==='offline'
-                  ? '#ff4466'
-                  : 'rgba(232,244,253,0.3)',
-                background: chainStatus[c.id]==='online'
-                  ? `${c.color}11` : 'transparent',
-              }}>
+            {[{id:'earth',label:'🌍 ETH',color:'#627eea'},{id:'soul',label:'🌟 SOL',color:'#9945ff'},{id:'moon',label:'🌙 MON',color:'#836ef9'},{id:'orbit',label:'🪐 ARB',color:'#12aaff'},{id:'birth',label:'₿ BTC',color:'#f7931a'}].map(c=>(
+              <div key={c.id} style={{padding:'4px 10px',borderRadius:20,fontSize:'0.65rem',border:'1px solid',fontFamily:'var(--font-mono)',borderColor:chainStatus[c.id]==='online'?`${c.color}55`:chainStatus[c.id]==='offline'?'rgba(255,68,102,0.3)':'rgba(255,255,255,0.1)',color:chainStatus[c.id]==='online'?c.color:chainStatus[c.id]==='offline'?'#ff4466':'rgba(232,244,253,0.3)',background:chainStatus[c.id]==='online'?`${c.color}11`:'transparent'}}>
                 {c.label} {chainStatus[c.id]==='online'?'●':chainStatus[c.id]==='offline'?'○':'···'}
               </div>
             ))}
           </div>
-
           <button className={styles.btnPrimary} onClick={()=>setLoginStep('email')}>Sign Up / Login</button>
           <button className={styles.btnSecondary} onClick={handleGuestView}>View Portfolio (Guest)</button>
           <div className={styles.gasNote}>✅ Gas FREE · 🛡️ CodeQL + Snyk + Semgrep</div>
@@ -352,30 +298,27 @@ export default function TheWall() {
         </div>}
 
         {loginStep==='choose2fa'&&<div className="fade-up-1">
-  <p className={styles.loginDesc}><strong style={s.cyan}>Choose 2FA</strong></p>
-  <button className={styles.btnPrimary} onClick={()=>setLoginStep('totp')}>🔢 Google Authenticator</button>
-  <button className={styles.btnGhost} onClick={()=>setLoginStep('email')}>← Back</button>
-</div>}
+          <p className={styles.loginDesc}><strong style={s.cyan}>Choose 2FA</strong></p>
+          <button className={styles.btnPrimary} onClick={()=>setLoginStep('totp')}>🔢 Google Authenticator</button>
+          <button className={styles.btnGhost} onClick={()=>setLoginStep('email')}>← Back</button>
+        </div>}
 
-        {loginStep==='biometric'&&<div className="fade-up-1">
-          <p className={styles.loginDesc}>👆 Biometric Verification</p>
-          <div style={{textAlign:'center',fontSize:'3rem',margin:'20px 0'}}>👆</div>
-  {loginStep==='totp'&&<div className="fade-up-1">
-  <p className={styles.loginDesc}>🔢 Google Authenticator</p>
-  <div style={{textAlign:'center',padding:'12px',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:8,marginBottom:16}}>
-    <div style={{fontSize:'0.72rem',color:'var(--text-muted)',lineHeight:1.8,...s.mono}}>
-      1️⃣ Open Google Authenticator<br/>
-      2️⃣ Tap ➕ → Enter setup key<br/>
-      3️⃣ Account: <span style={{color:'var(--cyan)'}}>{email||'your@email.com'}</span><br/>
-      4️⃣ Key: <span style={{color:'var(--cyan)'}}>TheWall Web3</span><br/>
-      5️⃣ Enter 6-digit code below
-    </div>
-  </div>
-  <input className={styles.input} type="text" maxLength={6} placeholder="000000" value={totpCode} onChange={e=>setTotpCode(e.target.value.replace(/\D/g,'').slice(0,6))} autoFocus/>
-  {error&&<p style={{color:'#ff4466',fontSize:'0.72rem',marginBottom:8}}>{error}</p>}
-  <button className={styles.btnPrimary} onClick={handleTotpAuth} disabled={totpCode.length!==6}>Verify →</button>
-  <button className={styles.btnGhost} onClick={()=>setLoginStep('choose2fa')}>← Back</button>
-</div>}
+        {loginStep==='totp'&&<div className="fade-up-1">
+          <p className={styles.loginDesc}>🔢 Google Authenticator</p>
+          <div style={{textAlign:'center',padding:'12px',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:8,marginBottom:16}}>
+            <div style={{fontSize:'0.72rem',color:'var(--text-muted)',lineHeight:1.8,...s.mono}}>
+              1️⃣ Open Google Authenticator<br/>
+              2️⃣ Tap ➕ → Enter setup key<br/>
+              3️⃣ Account: <span style={{color:'var(--cyan)'}}>{email||'your@email.com'}</span><br/>
+              4️⃣ Key: <span style={{color:'var(--cyan)'}}>TheWall Web3</span><br/>
+              5️⃣ Enter 6-digit code below
+            </div>
+          </div>
+          <input className={styles.input} type="text" maxLength={6} placeholder="000000" value={totpCode} onChange={e=>setTotpCode(e.target.value.replace(/\D/g,'').slice(0,6))} autoFocus/>
+          {error&&<p style={{color:'#ff4466',fontSize:'0.72rem',marginBottom:8}}>{error}</p>}
+          <button className={styles.btnPrimary} onClick={handleTotpAuth} disabled={totpCode.length!==6}>Verify →</button>
+          <button className={styles.btnGhost} onClick={()=>setLoginStep('choose2fa')}>← Back</button>
+        </div>}
 
         {loginStep==='creating'&&<div className={styles.creating+' fade-up-1'}>
           <div className={styles.spinner}/>
@@ -384,7 +327,7 @@ export default function TheWall() {
         </div>}
 
       </div>
-      <div className={styles.loginFooter}>⬡ THE WALL · Thewin · 2026 · IND → DXB · 🇮🇳🇦🇪</div>
+      <div className={styles.loginFooter}>⬡ THE WALL · DWIN · 2026 · IND → DXB · 🇮🇳🇦🇪</div>
     </div>
   )
 
@@ -396,7 +339,6 @@ export default function TheWall() {
         <div className={styles.headerRight}><button className={styles.searchIconBtn} onClick={()=>setSearchOpen(true)}>🔍</button><button className={styles.refreshBtn} onClick={handleRefresh} disabled={refreshing}><span style={{display:'inline-block',animation:refreshing?'spin 0.8s linear infinite':'none'}}>↻</span></button><button className={styles.logoutBtn} onClick={()=>{setScreen('login');setLoginStep('home')}}>⏻</button></div>
       </header>
 
-      {/* Search Modal */}
       {searchOpen&&<div className={styles.searchOverlay} onClick={()=>setSearchOpen(false)}><div className={styles.searchModal} onClick={e=>e.stopPropagation()}>
         <div className={styles.searchHeader}><span className={styles.searchTitle}>🔍 Wallet Search</span><button className={styles.searchClose} onClick={()=>{setSearchOpen(false);setSearchResult(null);setSearchQuery('')}}>✕</button></div>
         <div className={styles.searchInputRow}><input className={styles.searchInput} placeholder="ETH/SOL/ARB address..." value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&searchWallet(searchQuery)} autoFocus/><button className={styles.searchBtn} onClick={()=>searchWallet(searchQuery)}>→</button></div>
@@ -404,7 +346,6 @@ export default function TheWall() {
         {searchResult&&<div className={styles.searchResult}>{searchResult.loading?<div className={styles.searchLoading}><div className={styles.spinner}/><span>Fetching...</span></div>:searchResult.error?<div className={styles.searchError}>⚠ {searchResult.error}</div>:<><div className={styles.searchAddr}>{searchResult.address.slice(0,10)}...{searchResult.address.slice(-8)}<button className={styles.copyBtn} onClick={()=>navigator.clipboard.writeText(searchResult.address)}>📋</button></div><div className={styles.searchCards}><div className={styles.searchCard}><div className={styles.searchCardLabel}>ETH</div><div className={styles.searchCardValue} style={{color:'#627eea'}}>{searchResult.ethBalance.toFixed(4)}</div><div className={styles.searchCardUsd}>${searchResult.ethUsd.toFixed(2)}</div></div><div className={styles.searchCard}><div className={styles.searchCardLabel}>Txns</div><div className={styles.searchCardValue}>{searchResult.txCount}</div><div className={styles.searchCardUsd}>total</div></div></div><button className={styles.searchViewBtn} onClick={()=>{setUser({address:searchResult.address,type:'external'});fetchBalance(searchResult.address);setSearchOpen(false);setSearchResult(null)}}>View Portfolio →</button></>}</div>}
       </div></div>}
 
-      {/* Send/Receive Modal */}
       {sendOpen&&<div className={styles.searchOverlay} onClick={()=>setSendOpen(false)}><div className={styles.searchModal} onClick={e=>e.stopPropagation()}>
         <div className={styles.searchHeader}><span className={styles.searchTitle}>{sendTab==='send'?'📤 Send':'📥 Receive'}</span><button className={styles.searchClose} onClick={()=>{setSendOpen(false);setSendError('');setSendSuccess('')}}>✕</button></div>
         <div style={{display:'flex',gap:8,marginBottom:16}}>{(['send','receive']as const).map(t=><button key={t} onClick={()=>setSendTab(t)} style={{flex:1,padding:'10px',border:'1px solid',borderColor:sendTab===t?'var(--cyan)':'var(--border)',borderRadius:8,background:sendTab===t?'var(--cyan-glow)':'transparent',color:sendTab===t?'var(--cyan)':'var(--text-muted)',...s.mono,fontSize:'0.8rem',cursor:'pointer'}}>{t==='send'?'📤 Send':'📥 Receive'}</button>)}</div>
@@ -425,31 +366,16 @@ export default function TheWall() {
         </div>}
       </div></div>}
 
-      {/* DApp Browser */}
       {dappOpen&&<div className={styles.searchOverlay}><div style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:12,width:'100%',maxWidth:600,margin:'auto',marginTop:20,padding:0,overflow:'hidden'}}>
         <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',background:'var(--bg3)',borderBottom:'1px solid var(--border)'}}>
-          <input 
-            value={dappUrl} 
-            onChange={e=>setDappUrl(e.target.value)} 
-            style={{flex:1,padding:'8px 10px',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:6,...s.mono,color:'var(--text)',fontSize:'0.75rem'}} 
-            placeholder="https://"/>
-          <button 
-            onClick={()=>setDappOpen(false)} 
-            style={{padding:'6px 10px',background:'rgba(255,68,102,0.1)',border:'1px solid rgba(255,68,102,0.2)',borderRadius:6,color:'#ff4466',cursor:'pointer'}}>✕</button>
+          <input value={dappUrl} onChange={e=>setDappUrl(e.target.value)} style={{flex:1,padding:'8px 10px',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:6,...s.mono,color:'var(--text)',fontSize:'0.75rem'}} placeholder="https://"/>
+          <button onClick={()=>setDappOpen(false)} style={{padding:'6px 10px',background:'rgba(255,68,102,0.1)',border:'1px solid rgba(255,68,102,0.2)',borderRadius:6,color:'#ff4466',cursor:'pointer'}}>✕</button>
         </div>
-        
-        {/* ✅ Security fix: https:// only — blocks javascript: XSS */}
-        <iframe 
-          src={dappUrl.startsWith('https://') ? dappUrl : 'about:blank'} 
-          style={{width:'100%',height:'70vh',border:'none'}} 
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups" 
-          title="DApp"/>
-      </div></div>
-}
+        <iframe src={dappUrl.startsWith('https://')?dappUrl:'about:blank'} style={{width:'100%',height:'70vh',border:'none'}} sandbox="allow-scripts allow-same-origin allow-forms allow-popups" title="DApp"/>
+      </div></div>}
 
       <main className={styles.main}>
 
-        {/* HOME */}
         {bottomTab==='home'&&<div>
           <section className={styles.walletCard+' fade-up-1'}>
             <div className={styles.walletTop}><div><div className={styles.walletLabel}>{walletLabel}</div><div className={styles.walletAddr}>{fmtAddr(user?.address||MAIN_WALLET)}<button className={styles.copyBtn} onClick={()=>navigator.clipboard.writeText(user?.address||MAIN_WALLET)}>📋</button></div>{user?.email&&<div className={styles.walletEmail}>{user.email}</div>}</div><div className={styles.walletTotal}><div className={styles.totalLabel}>TOTAL PORTFOLIO</div><div className={styles.totalAmount}>{portfolioTotal>0?fmt(portfolioTotal):<span className={styles.loading}>$···</span>}</div></div></div>
@@ -462,7 +388,6 @@ export default function TheWall() {
           {TOKENS.slice(0,4).map(token=>{const p=prices[token.symbol],bal=token.symbol==='ETH'?walletData?.ethBalance||0:token.symbol==='SOL'?walletData?.solBalance||0:token.symbol==='ARB'?walletData?.arbBalance||0:token.symbol==='EMC'?EMOCOIN.balance:0;return <div key={token.symbol} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:10,marginBottom:8}}><div style={{display:'flex',alignItems:'center',gap:10}}><div style={{width:8,height:8,borderRadius:'50%',background:token.color}}/><div><div style={{fontSize:'0.82rem',color:'var(--text)',...s.mono,fontWeight:700}}>{token.symbol}</div><div style={{fontSize:'0.62rem',...s.muted}}>{token.chain}</div></div></div><div style={{textAlign:'right'}}><div style={{fontSize:'0.82rem',color:'var(--text)',...s.mono}}>{p?'$'+p.price.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2}):<span style={s.muted}>$···</span>}</div>{p&&<div style={{fontSize:'0.65rem',color:p.change24h>=0?'#00ff88':'#ff4466'}}>{p.change24h>=0?'▲':'▼'} {Math.abs(p.change24h).toFixed(2)}%</div>}{bal>0&&<div style={{fontSize:'0.62rem',...s.muted}}>{bal.toFixed(4)} {token.symbol}</div>}</div></div>})}
         </div>}
 
-        {/* TRADE */}
         {bottomTab==='trade'&&<div>
           <div style={{marginBottom:12}}>
             {/* @ts-ignore */}
@@ -478,11 +403,9 @@ export default function TheWall() {
           <button onClick={handleSwap} disabled={swap.loading||!swap.amount||!swap.estimatedOut} style={{width:'100%',padding:'14px',background:swap.loading||!swap.amount?'var(--bg3)':'linear-gradient(135deg,#627eea,#9945ff)',border:'none',borderRadius:10,color:'#fff',...s.mono,fontSize:'0.9rem',fontWeight:700,cursor:swap.loading||!swap.amount?'not-allowed':'pointer'}}>{swap.loading?'⏳ Swapping...':`🔄 Swap ${swap.fromToken} to ${swap.toToken}`}</button>
           <div style={{textAlign:'center',fontSize:'0.62rem',...s.muted,marginTop:10}}>UniSwap V3 · Gasless ⚡ · TheWall Universal 🦋</div>
         </div>}
-        
-        {/* MARKETS */}
+
         {bottomTab==='markets'&&<div>
           <div style={{display:'flex',gap:8,marginBottom:16}}>{(['charts','news','alerts']as const).map(t=><button key={t} onClick={()=>setMarketsTab(t)} style={{flex:1,padding:'10px',border:'1px solid',borderColor:marketsTab===t?'var(--cyan)':'var(--border)',borderRadius:8,background:marketsTab===t?'var(--cyan-glow)':'var(--bg2)',color:marketsTab===t?'var(--cyan)':'var(--text-muted)',...s.mono,fontSize:'0.72rem',cursor:'pointer'}}>{t==='charts'?'📊 Charts':t==='news'?'📰 News':'🔔 Alerts'}</button>)}</div>
-
           {marketsTab==='charts'&&<div>
             <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:12}}>{['ETH','SOL','ARB','BTC','BNB'].map(sym=>{const token=TOKENS.find(t=>t.symbol===sym);return <button key={sym} onClick={()=>setChartToken(sym)} style={{padding:'6px 12px',border:'1px solid',borderColor:chartToken===sym?token?.color||'var(--cyan)':'var(--border)',borderRadius:20,background:chartToken===sym?`${token?.color||'#00e5ff'}15`:'var(--bg2)',color:chartToken===sym?token?.color||'var(--cyan)':'var(--text-muted)',...s.mono,fontSize:'0.72rem',cursor:'pointer'}}>{sym}</button>})}</div>
             <div style={{display:'flex',gap:6,marginBottom:12}}>{[{v:'1',l:'1D'},{v:'7',l:'7D'},{v:'30',l:'1M'},{v:'90',l:'3M'},{v:'365',l:'1Y'}].map(d=><button key={d.v} onClick={()=>setChartDays(d.v)} style={{flex:1,padding:'6px',border:'1px solid',borderColor:chartDays===d.v?'var(--cyan)':'var(--border)',borderRadius:6,background:chartDays===d.v?'var(--cyan-glow)':'var(--bg2)',color:chartDays===d.v?'var(--cyan)':'var(--text-muted)',...s.mono,fontSize:'0.68rem',cursor:'pointer'}}>{d.l}</button>)}</div>
@@ -495,18 +418,16 @@ export default function TheWall() {
             <div style={{...s.label,marginBottom:8}}>ALL ASSETS</div>
             {TOKENS.map(token=>{const p=prices[token.symbol];return <div key={token.symbol} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 12px',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:8,marginBottom:6}}><div style={{display:'flex',alignItems:'center',gap:8}}><div style={{width:6,height:6,borderRadius:'50%',background:token.color}}/><span style={{fontSize:'0.78rem',...s.mono,color:'var(--text)',fontWeight:700}}>{token.symbol}</span><span style={{fontSize:'0.6rem',...s.muted}}>{token.chain}</span></div><div style={{textAlign:'right'}}><div style={{fontSize:'0.78rem',...s.mono}}>{p?'$'+p.price.toLocaleString('en',{minimumFractionDigits:2}):<span style={s.muted}>$···</span>}</div>{p&&<div style={{fontSize:'0.62rem',color:p.change24h>=0?'#00ff88':'#ff4466'}}>{p.change24h>=0?'▲':'▼'}{Math.abs(p.change24h).toFixed(2)}%</div>}</div></div>})}
           </div>}
-
           {marketsTab==='news'&&<div>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}><div style={{...s.label,marginBottom:0}}>CRYPTO NEWS</div><button onClick={fetchNews} style={{padding:'4px 10px',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:6,...s.cyan,...s.mono,fontSize:'0.65rem',cursor:'pointer'}}>↻ Refresh</button></div>
             {newsLoading&&<div style={{display:'flex',justifyContent:'center',padding:24}}><div className={styles.spinner}/></div>}
-            {!newsLoading&&news.length===0&&<div style={{textAlign:'center',padding:24,fontSize:'0.75rem',...s.muted}}>No news available.<br/>Check CRYPTOPANIC_API_KEY</div>}
+            {!newsLoading&&news.length===0&&<div style={{textAlign:'center',padding:24,fontSize:'0.75rem',...s.muted}}>No news available.</div>}
             {news.map((item,i)=><div key={i} style={{...s.card,padding:12,marginBottom:8,cursor:'pointer'}} onClick={()=>window.open(item.url,'_blank')}>
               <div style={{fontSize:'0.75rem',color:'var(--text)',lineHeight:1.5,marginBottom:6}}>{item.title}</div>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}><div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{item.currencies.slice(0,3).map(c=><span key={c} style={{fontSize:'0.6rem',padding:'2px 6px',background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:10,...s.mono,...s.cyan}}>{c}</span>)}</div><div style={{fontSize:'0.6rem',...s.muted}}>{item.source}</div></div>
               <div style={{display:'flex',gap:8,marginTop:6,fontSize:'0.62rem'}}><span style={{color:'#00ff88'}}>▲ {item.positive}</span><span style={{color:'#ff4466'}}>▼ {item.negative}</span><span style={s.muted}>{new Date(item.published).toLocaleDateString()}</span></div>
             </div>)}
           </div>}
-
           {marketsTab==='alerts'&&<div>
             <div style={s.card}>
               <div style={{...s.label,marginBottom:12}}>CREATE PRICE ALERT 🔔</div>
@@ -520,18 +441,15 @@ export default function TheWall() {
           </div>}
         </div>}
 
-        {/* SETTINGS */}
         {bottomTab==='settings'&&<div>
           <div style={{display:'flex',gap:6,marginBottom:16,flexWrap:'wrap'}}>{(['profile','security','history','dapps']as const).map(t=><button key={t} onClick={()=>setSettingsTab(t)} style={{flex:1,padding:'9px',border:'1px solid',borderColor:settingsTab===t?'var(--cyan)':'var(--border)',borderRadius:8,background:settingsTab===t?'var(--cyan-glow)':'var(--bg2)',color:settingsTab===t?'var(--cyan)':'var(--text-muted)',...s.mono,fontSize:'0.68rem',cursor:'pointer',minWidth:60}}>{t==='profile'?'👤':t==='security'?'🔐':t==='history'?'💳':'🌐'} {t}</button>)}</div>
-
           {settingsTab==='profile'&&<div>
-            <div style={{...s.card,textAlign:'center'}}><div style={{fontSize:'3rem',marginBottom:8}}>🦋</div><div style={{fontSize:'0.9rem',...s.mono,color:'var(--text)',fontWeight:700,marginBottom:4}}>{user?.email||'Guest Wallet'}</div><div style={{fontSize:'0.68rem',...s.muted,marginBottom:12}}>{user?.type==='smart'?'Smart Wallet · '+(user.twoFaMethod==='biometric'?'Biometric 👆':'TOTP 🔢'):'External Wallet'}</div><div style={{padding:'10px',background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:8,fontSize:'0.7rem',...s.mono,...s.cyan,wordBreak:'break-all'}}>{user?.address||MAIN_WALLET}</div><button onClick={()=>navigator.clipboard.writeText(user?.address||MAIN_WALLET)} style={{marginTop:8,padding:'8px 16px',background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:6,...s.cyan,...s.mono,fontSize:'0.72rem',cursor:'pointer'}}>📋 Copy Address</button></div>
+            <div style={{...s.card,textAlign:'center'}}><div style={{fontSize:'3rem',marginBottom:8}}>🦋</div><div style={{fontSize:'0.9rem',...s.mono,color:'var(--text)',fontWeight:700,marginBottom:4}}>{user?.email||'Guest Wallet'}</div><div style={{fontSize:'0.68rem',...s.muted,marginBottom:12}}>{user?.type==='smart'?'Smart Wallet · TOTP 🔢':'External Wallet'}</div><div style={{padding:'10px',background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:8,fontSize:'0.7rem',...s.mono,...s.cyan,wordBreak:'break-all'}}>{user?.address||MAIN_WALLET}</div><button onClick={()=>navigator.clipboard.writeText(user?.address||MAIN_WALLET)} style={{marginTop:8,padding:'8px 16px',background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:6,...s.cyan,...s.mono,fontSize:'0.72rem',cursor:'pointer'}}>📋 Copy Address</button></div>
             <div style={s.card}><div style={{...s.label,marginBottom:12}}>WALLET STATS</div>{[{label:'Portfolio',value:fmt(portfolioTotal)},{label:'EmoCoins',value:EMOCOIN.balance+' EMC'},{label:'Goal',value:goalPct.toFixed(4)+'%'},{label:'Active Alerts',value:alerts.filter(a=>!a.triggered).length.toString()},{label:'Address Book',value:addressBook.length.toString()}].map(stat=><div key={stat.label} style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid var(--border)'}}><span style={{fontSize:'0.72rem',...s.muted}}>{stat.label}</span><span style={{fontSize:'0.72rem',...s.mono,color:'var(--text)',fontWeight:700}}>{stat.value}</span></div>)}</div>
             <div style={{...s.label,marginBottom:8}}>TREASURY</div>
             <div className={styles.treasuryCard}><div className={styles.treasuryIcon}>🏛️</div><div><div className={styles.treasuryLabel}>ETH / ARB / MON</div><div className={styles.treasuryAddr}>{TREASURY}</div></div><button className={styles.copyBtn} onClick={()=>navigator.clipboard.writeText(TREASURY)}>📋</button></div>
             <div className={styles.treasuryCard}><div className={styles.treasuryIcon}>🌟</div><div><div className={styles.treasuryLabel}>SOLANA</div><div className={styles.treasuryAddr}>{SOL_WALLET}</div></div><button className={styles.copyBtn} onClick={()=>navigator.clipboard.writeText(SOL_WALLET)}>📋</button></div>
           </div>}
-
           {settingsTab==='security'&&<div>
             <div style={{...s.card,border:`1px solid ${frozen?'rgba(0,255,136,0.3)':'rgba(255,68,102,0.2)'}`}}><div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}><div><div style={{fontSize:'0.82rem',...s.mono,color:'var(--text)',fontWeight:700}}>❄️ Freeze Wallet</div><div style={{fontSize:'0.65rem',...s.muted,marginTop:2}}>{frozen?'Wallet is FROZEN':'Emergency lock'}</div></div><button onClick={()=>{if(!pinSet){alert('Set PIN first!');return}setFrozen(!frozen)}} style={{padding:'8px 14px',background:frozen?'rgba(0,255,136,0.1)':'rgba(255,68,102,0.1)',border:`1px solid ${frozen?'rgba(0,255,136,0.3)':'rgba(255,68,102,0.3)'}`,borderRadius:8,color:frozen?'#00ff88':'#ff4466',...s.mono,fontSize:'0.75rem',cursor:'pointer'}}>{frozen?'Unfreeze':'Freeze'}</button></div><div style={{fontSize:'0.62rem',...s.muted}}>Freezing locks all transactions immediately</div></div>
             <div style={s.card}><div style={{...s.label,marginBottom:12}}>🔑 {pinSet?'CHANGE PIN':'SET PIN'}</div><input type="password" maxLength={6} placeholder="6-digit PIN" value={pin} onChange={e=>setPin(e.target.value.replace(/\D/g,'').slice(0,6))} style={{width:'100%',padding:'10px',background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text)',...s.mono,fontSize:'1.2rem',letterSpacing:'0.3em',textAlign:'center',marginBottom:10}}/><button onClick={()=>{if(pin.length===6){setPinSet(true);setPinError('');alert('PIN set!')}else setPinError('6 digits needed')}} style={{width:'100%',padding:'10px',background:'var(--cyan-glow)',border:'1px solid var(--cyan)',borderRadius:8,...s.cyan,...s.mono,fontSize:'0.82rem',cursor:'pointer'}}>✅ {pinSet?'Update':'Set'} PIN</button>{pinError&&<div style={{color:'#ff4466',fontSize:'0.68rem',marginTop:6}}>{pinError}</div>}</div>
@@ -540,7 +458,6 @@ export default function TheWall() {
             <div className={styles.webhookStatus}><span className={styles.liveDot}/>Alchemy Webhook Active</div>
             <div style={{textAlign:'center',fontSize:'0.62rem',...s.muted,marginTop:8}}>🛡️ CodeQL · Snyk · Semgrep</div>
           </div>}
-
           {settingsTab==='history'&&<div>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}><div style={{...s.label,marginBottom:0}}>TX HISTORY</div><button onClick={()=>fetchTxHistory(user?.address||MAIN_WALLET)} style={{padding:'4px 10px',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:6,...s.cyan,...s.mono,fontSize:'0.65rem',cursor:'pointer'}}>↻</button></div>
             {txLoading&&<div style={{display:'flex',justifyContent:'center',padding:24}}><div className={styles.spinner}/></div>}
@@ -551,7 +468,6 @@ export default function TheWall() {
               <div style={{display:'flex',justifyContent:'space-between',marginTop:4,fontSize:'0.62rem',...s.muted}}><span>{tx.time}</span><span>Gas: {tx.gas}</span><span style={s.cyan}>↗ Etherscan</span></div>
             </div>)}
           </div>}
-
           {settingsTab==='dapps'&&<div>
             <div style={{...s.label,marginBottom:12}}>POPULAR DApps</div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:16}}>{DAPP_LIST.map(dapp=><button key={dapp.name} onClick={()=>{setDappUrl(dapp.url);setDappOpen(true)}} style={{padding:'14px 10px',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:10,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:6}}><span style={{fontSize:'1.5rem'}}>{dapp.icon}</span><span style={{fontSize:'0.72rem',...s.mono,color:'var(--text)'}}>{dapp.name}</span></button>)}</div>
@@ -563,7 +479,6 @@ export default function TheWall() {
 
       </main>
 
-      {/* BOTTOM NAV */}
       <nav style={{position:'fixed',bottom:0,left:0,right:0,background:'var(--bg2)',borderTop:'1px solid var(--border)',display:'flex',zIndex:100,paddingBottom:'env(safe-area-inset-bottom)'}}>
         {([{id:'home',icon:'🏠',label:'Home'},{id:'trade',icon:'💱',label:'Trade'},{id:'markets',icon:'📊',label:'Markets'},{id:'settings',icon:'⚙️',label:'Settings'}] as {id:BottomTab;icon:string;label:string}[]).map(tab=>(
           <button key={tab.id} onClick={()=>setBottomTab(tab.id)} style={{flex:1,padding:'12px 0 10px',background:'transparent',border:'none',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:4,borderTop:bottomTab===tab.id?'2px solid var(--cyan)':'2px solid transparent'}}>
