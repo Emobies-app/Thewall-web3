@@ -240,7 +240,7 @@ export default function TheWall() {
     if(!sendTo||!sendAmount)return
     setSendLoading(true);setSendError('');setSendSuccess('')
     try {
-      const r=await fetch('/api/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chain:sendChain,to:sendTo,amount:sendAmount,from:user?.address||MAIN_WALLET})})
+      const r=await fetch('/api/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'prepare',chain:sendChain,to:sendTo,amount:sendAmount,from:user?.address||MAIN_WALLET})})
       const d=await r.json()
       if(d.success){setSendSuccess(`✅ ${sendAmount} ${sendChain} → ${sendTo.slice(0,8)}... · FREE ⚡`);setSendAmount('');setSendTo('')}
       else setSendError(d.error||'Send failed')
