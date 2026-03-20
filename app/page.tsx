@@ -373,11 +373,6 @@ export default function TheWall() {
   <button className={styles.btnPrimary} onClick={handleTotpAuth} disabled={totpCode.length!==6}>Verify →</button>
   <button className={styles.btnGhost} onClick={()=>setLoginStep('choose2fa')}>← Back</button>
 </div>}
-  <input className={styles.input} type="text" maxLength={6} placeholder="000000" value={totpCode} onChange={e=>setTotpCode(e.target.value.replace(/\D/g,'').slice(0,6))} autoFocus/>
-  {error&&<p style={{color:'#ff4466',fontSize:'0.72rem',marginBottom:8}}>{error}</p>}
-  <button className={styles.btnPrimary} onClick={handleTotpAuth} disabled={totpCode.length!==6}>Verify →</button>
-  <button className={styles.btnGhost} onClick={()=>setLoginStep('choose2fa')}>← Back</button>
-</div>}
 
         {loginStep==='creating'&&<div className={styles.creating+' fade-up-1'}>
           <div className={styles.spinner}/>
