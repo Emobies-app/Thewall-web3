@@ -306,7 +306,7 @@ export default function TheWall() {
         {loginStep==='totp'&&<div className="fade-up-1">
           <p className={styles.loginDesc}>🔢 Google Authenticator</p>
           <div style={{textAlign:'center',padding:'12px',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:8,marginBottom:16}}>
-            <div style={{fontSize:'0.72rem',color:'var(--text-muted)',lineHeight:1.8,...s.mono}}>
+            <div style={{fontSize:'0.72rem',color:'#E8F4FD',lineHeight:1.8,...s.mono}}>
               1️⃣ Open Google Authenticator<br/>
               2️⃣ Tap ➕ → Enter setup key<br/>
               3️⃣ Account: <span style={{color:'var(--cyan)'}}>{email||'your@email.com'}</span><br/>
