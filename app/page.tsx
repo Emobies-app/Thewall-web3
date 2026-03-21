@@ -101,7 +101,7 @@ export default function TheWall() {
   const [sendLoading, setSendLoading] = useState(false)
   const [sendError, setSendError]     = useState('')
   const [sendSuccess, setSendSuccess] = useState('')
-  const [addressBook, setAddressBook] = useState<{name:string;address:string}[]>([])
+  const [addressBook, setAddressBook] = useState<{name:string;address:string}[]>(()=>{ try{ return JSON.parse(localStorage.getItem('tw_ab')||'[]')} catch{return []}})
   const [swap, setSwap] = useState<SwapState>({ fromToken:'ETH', toToken:'SOL', amount:'', estimatedOut:'', loading:false, error:'', success:'', priceImpact:0, route:'' })
   const [chainStatus, setChainStatus] = useState<Record<string,'online'|'offline'|'checking'>>({ earth:'checking', soul:'checking', moon:'checking', orbit:'checking', birth:'checking' })
   const [chartToken, setChartToken]   = useState('ETH')
@@ -201,6 +201,7 @@ export default function TheWall() {
   }, [chartData,chartToken])
 
   useEffect(()=>{fetchPrices();const i=setInterval(fetchPrices,60_000);return()=>clearInterval(i)},[fetchPrices])
+  useEffect(()=>{localStorage.setItem('tw_ab',JSON.stringify(addressBook))},[addressBook])
   useEffect(()=>{if(bottomTab==='markets'&&marketsTab==='charts')fetchChart(chartToken,chartDays)},[bottomTab,marketsTab,chartToken,chartDays,fetchChart])
   useEffect(()=>{if(bottomTab==='markets'&&marketsTab==='news'&&!news.length)fetchNews()},[bottomTab,marketsTab,fetchNews,news.length])
   useEffect(()=>{if(bottomTab==='settings'&&settingsTab==='history'&&user?.address&&!txHistory.length)fetchTxHistory(user.address)},[bottomTab,settingsTab,user,txHistory.length,fetchTxHistory])
