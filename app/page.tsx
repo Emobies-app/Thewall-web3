@@ -101,7 +101,7 @@ export default function TheWall() {
   const [sendLoading, setSendLoading] = useState(false)
   const [sendError, setSendError]     = useState('')
   const [sendSuccess, setSendSuccess] = useState('')
-  const [addressBook, setAddressBook] = useState<{name:string;address:string}[]>(()=>{ try{ return JSON.parse(localStorage.getItem('tw_ab')||'[]')} catch{return []}})
+  const [addressBook, setAddressBook] = useState<{name:string;address:string}[]>([])
   const [swap, setSwap] = useState<SwapState>({ fromToken:'ETH', toToken:'SOL', amount:'', estimatedOut:'', loading:false, error:'', success:'', priceImpact:0, route:'' })
   const [chainStatus, setChainStatus] = useState<Record<string,'online'|'offline'|'checking'>>({ earth:'checking', soul:'checking', moon:'checking', orbit:'checking', birth:'checking' })
   const [chartToken, setChartToken]   = useState('ETH')
@@ -127,7 +127,10 @@ export default function TheWall() {
   const [pinError, setPinError]       = useState('')
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
-  useEffect(() => { checkChainStatus() }, [])
+  useEffect(() => {
+    checkChainStatus()
+    try { const saved=localStorage.getItem('tw_ab'); if(saved) setAddressBook(JSON.parse(saved)) } catch {}
+  }, [])
 
   const checkChainStatus = async () => {
     for (const c of [{id:'earth',url:'https://eth.llamarpc.com'},{id:'orbit',url:'https://arb1.arbitrum.io/rpc'},{id:'moon',url:'https://rpc.monad.xyz'}]) {
