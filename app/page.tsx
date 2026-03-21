@@ -302,7 +302,6 @@ export default function TheWall() {
         </div>
 
         {loginStep==='home'&&<div className="fade-up-1">
-          <p className={styles.loginDesc}>Gasless wallet. No seed phrase.<br/>Charts · News · Alerts · DApps</p>
           <div style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'center',marginBottom:14}}>
             {[{icon:'⬡',label:'No Seed',color:'#00ff88'},{icon:'⚡',label:'Gasless',color:'#f7931a'},{icon:'🔒',label:'2FA',color:'#ff4466'},{icon:'📊',label:'Charts',color:'#627eea'},{icon:'📰',label:'News',color:'#ffffff'},{icon:'🔔',label:'Alerts',color:'#ffd700'},{icon:'🌐',label:'DApps',color:'#9945ff'},{icon:'🔄',label:'Swap',color:'#00e5ff'}].map(f=>(
               <div key={f.label} style={{display:'flex',alignItems:'center',gap:4,padding:'5px 10px',border:`1px solid ${f.color}44`,borderRadius:20,background:`${f.color}11`,fontSize:'0.68rem',fontFamily:'var(--font-mono)',color:f.color,whiteSpace:'nowrap'}}>
