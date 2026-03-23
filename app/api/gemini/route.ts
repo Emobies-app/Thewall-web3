@@ -14,11 +14,21 @@ Always end response with 🦋`
 export async function POST(req: NextRequest) {
   try {
     const { messages } = await req.json()
-    const key = process.env.NEXT_PUBLIC_GEMINI_KEY || process.env.GEMINI_KEY_HERE || ''
+    
+    // Try all possible env variable names
+    const key = process.env.NEXT_PUBLIC_GEMINI_KEY 
+             || process.env.GEMINI_KEY_HERE 
+             || ''
     
     if (!key) {
-      return NextResponse.json({ reply: '🦋 AI not configured yet. Coming soon!' })
+      return NextResponse.json({ reply: '🦋 AI key not configured!' })
     }
+
+    // Fix message format for Gemini API
+    const contents = (messages || []).map((m: any) => ({
+      role: m.role === 'model' ? 'model' : 'user',
+      parts: Array.isArray(m.parts) ? m.parts : [{ text: m.parts || m.text || '' }]
+    }))
 
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
@@ -27,16 +37,25 @@ export async function POST(req: NextRequest) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-          contents: messages,
+          contents: contents.length > 0 ? contents : [{ role: 'user', parts: [{ text: 'Hello' }] }],
           generationConfig: { maxOutputTokens: 150, temperature: 0.7 }
         })
       }
     )
 
     const data = await res.json()
-    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || '🦋 Sorry, try again!'
+    
+    // Log error if any
+    if (data.error) {
+      console.error('Gemini error:', data.error)
+      return NextResponse.json({ reply: `🦋 ${data.error.message || 'Try again!'}` })
+    }
+
+    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || '🦋 No response. Try again!'
     return NextResponse.json({ reply })
-  } catch (e) {
+    
+  } catch (e: any) {
+    console.error('Route error:', e)
     return NextResponse.json({ reply: '🦋 Connection error. Try again!' }, { status: 500 })
   }
 }
