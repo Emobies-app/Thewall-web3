@@ -418,5 +418,5 @@ export default function EmowallButterfly() {
   )
 }
 
-// Named export alias for layout.tsx compatibility
-export { default as EmowallAIChat } from './EmowallButterfly'
+// Named export for layout.tsx
+export const EmowallAIChat = EmowallButterfly
