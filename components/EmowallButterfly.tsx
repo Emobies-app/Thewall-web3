@@ -195,7 +195,7 @@ export default function EmowallButterfly() {
   function onChatUp() { chatDown.current=false }
 
   // Gemini
-  const GEMINI_KEY = process.env.NEXT_PUBLIC_GEMINI_KEY || ''
+  const GEMINI_KEY = 'YOUR_GEMINI_KEY_HERE'
   const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`
 
   async function sendMsg() {
@@ -417,3 +417,6 @@ export default function EmowallButterfly() {
     </>
   )
 }
+
+// Named export alias for layout.tsx compatibility
+export { default as EmowallAIChat } from './EmowallButterfly'
