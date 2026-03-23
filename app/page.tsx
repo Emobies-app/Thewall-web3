@@ -37,7 +37,6 @@ const DAPP_LIST   = [{name:'Uniswap',url:'https://app.uniswap.org',icon:'🦄'},
 
 type BottomTab = 'home'|'trade'|'markets'|'settings'
 
-// ── TOTP QR Component ──────────────────────────────────────
 function TotpQr({ email }: { email: string }) {
   const [qr, setQr] = useState('')
   const [loading, setLoading] = useState(true)
@@ -49,30 +48,18 @@ function TotpQr({ email }: { email: string }) {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [email])
-
-  if (loading) return (
-    <div style={{textAlign:'center',padding:'20px',color:'#00e5ff',fontSize:'0.72rem'}}>
-      ⏳ Loading QR code...
-    </div>
-  )
-
+  if (loading) return <div style={{textAlign:'center',padding:'20px',color:'#00e5ff',fontSize:'0.72rem'}}>⏳ Loading QR code...</div>
   return qr ? (
     <div style={{textAlign:'center',marginBottom:16}}>
-      <img src={qr} width={160} height={160}
-        style={{borderRadius:8,border:'2px solid #00e5ff',display:'inline-block'}}
-        alt="QR Code"/>
-      <p style={{fontSize:'0.68rem',color:'#E8F4FD',marginTop:8,fontFamily:'var(--font-mono)'}}>
-        📱 Scan with Google Authenticator
-      </p>
+      <img src={qr} width={160} height={160} style={{borderRadius:8,border:'2px solid #00e5ff',display:'inline-block'}} alt="QR Code"/>
+      <p style={{fontSize:'0.68rem',color:'#E8F4FD',marginTop:8,fontFamily:'var(--font-mono)'}}>📱 Scan with Google Authenticator</p>
     </div>
   ) : (
     <div style={{textAlign:'center',padding:'12px',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:8,marginBottom:16}}>
       <div style={{fontSize:'0.72rem',color:'#E8F4FD',lineHeight:1.8,fontFamily:'var(--font-mono)'}}>
-        1️⃣ Open Google Authenticator<br/>
-        2️⃣ Tap ➕ → Enter setup key<br/>
+        1️⃣ Open Google Authenticator<br/>2️⃣ Tap ➕ → Enter setup key<br/>
         3️⃣ Account: <span style={{color:'#00e5ff'}}>{email||'your@email.com'}</span><br/>
-        4️⃣ Key: <span style={{color:'#00ff88'}}>TheWall Web3</span><br/>
-        5️⃣ Enter 6-digit code below
+        4️⃣ Key: <span style={{color:'#00ff88'}}>TheWall Web3</span><br/>5️⃣ Enter 6-digit code below
       </div>
     </div>
   )
@@ -101,6 +88,7 @@ export default function TheWall() {
   const [sendLoading, setSendLoading] = useState(false)
   const [sendError, setSendError]     = useState('')
   const [sendSuccess, setSendSuccess] = useState('')
+  // FIX 1: Address book state - loads from localStorage correctly
   const [addressBook, setAddressBook] = useState<{name:string;address:string}[]>([])
   const [swap, setSwap] = useState<SwapState>({ fromToken:'ETH', toToken:'SOL', amount:'', estimatedOut:'', loading:false, error:'', success:'', priceImpact:0, route:'' })
   const [chainStatus, setChainStatus] = useState<Record<string,'online'|'offline'|'checking'>>({ earth:'checking', soul:'checking', moon:'checking', orbit:'checking', birth:'checking' })
@@ -129,8 +117,20 @@ export default function TheWall() {
 
   useEffect(() => {
     checkChainStatus()
-    try { const saved=localStorage.getItem('tw_ab'); if(saved) setAddressBook(JSON.parse(saved)) } catch {}
+    // FIX 2: Properly load address book from localStorage
+    try {
+      const saved = localStorage.getItem('tw_ab')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed)) setAddressBook(parsed)
+      }
+    } catch(e) { console.log('AB load error', e) }
   }, [])
+
+  // FIX 3: Save address book with error handling
+  useEffect(() => {
+    try { localStorage.setItem('tw_ab', JSON.stringify(addressBook)) } catch(e) {}
+  }, [addressBook])
 
   const checkChainStatus = async () => {
     for (const c of [{id:'earth',url:'https://eth.llamarpc.com'},{id:'orbit',url:'https://arb1.arbitrum.io/rpc'},{id:'moon',url:'https://rpc.monad.xyz'}]) {
@@ -204,7 +204,6 @@ export default function TheWall() {
   }, [chartData,chartToken])
 
   useEffect(()=>{fetchPrices();const i=setInterval(fetchPrices,60_000);return()=>clearInterval(i)},[fetchPrices])
-  useEffect(()=>{localStorage.setItem('tw_ab',JSON.stringify(addressBook))},[addressBook])
   useEffect(()=>{if(bottomTab==='markets'&&marketsTab==='charts')fetchChart(chartToken,chartDays)},[bottomTab,marketsTab,chartToken,chartDays,fetchChart])
   useEffect(()=>{if(bottomTab==='markets'&&marketsTab==='news'&&!news.length)fetchNews()},[bottomTab,marketsTab,fetchNews,news.length])
   useEffect(()=>{if(bottomTab==='settings'&&settingsTab==='history'&&user?.address&&!txHistory.length)fetchTxHistory(user.address)},[bottomTab,settingsTab,user,txHistory.length,fetchTxHistory])
@@ -295,18 +294,13 @@ export default function TheWall() {
       <div className={styles.loginCard}>
         <div className={styles.logo+' fade-up'}>
           <span className={styles.hexLogo}>⬡</span>
-          <div>
-            <div className={styles.logoTitle}>THE WALL</div>
-            <div className={styles.logoSub}>Web3 · IND → DXB · 5 Chains</div>
-          </div>
+          <div><div className={styles.logoTitle}>THE WALL</div><div className={styles.logoSub}>Web3 · IND → DXB · 5 Chains</div></div>
         </div>
 
         {loginStep==='home'&&<div className="fade-up-1">
           <div style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'center',marginBottom:14}}>
             {[{icon:'⬡',label:'No Seed',color:'#00ff88'},{icon:'⚡',label:'Gasless',color:'#f7931a'},{icon:'🔒',label:'2FA',color:'#ff4466'},{icon:'📊',label:'Charts',color:'#627eea'},{icon:'📰',label:'News',color:'#ffffff'},{icon:'🔔',label:'Alerts',color:'#ffd700'},{icon:'🌐',label:'DApps',color:'#9945ff'},{icon:'🔄',label:'Swap',color:'#00e5ff'}].map(f=>(
-              <div key={f.label} style={{display:'flex',alignItems:'center',gap:4,padding:'5px 10px',border:`1px solid ${f.color}44`,borderRadius:20,background:`${f.color}11`,fontSize:'0.68rem',fontFamily:'var(--font-mono)',color:f.color,whiteSpace:'nowrap'}}>
-                <span>{f.icon}</span><span style={{fontWeight:700}}>{f.label}</span>
-              </div>
+              <div key={f.label} style={{display:'flex',alignItems:'center',gap:4,padding:'5px 10px',border:`1px solid ${f.color}44`,borderRadius:20,background:`${f.color}11`,fontSize:'0.68rem',fontFamily:'var(--font-mono)',color:f.color,whiteSpace:'nowrap'}}><span>{f.icon}</span><span style={{fontWeight:700}}>{f.label}</span></div>
             ))}
           </div>
           <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:16,justifyContent:'center'}}>
@@ -375,8 +369,34 @@ export default function TheWall() {
           <div style={{marginBottom:12}}><div style={s.label}>SELECT CHAIN</div><div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{SEND_CHAINS.map(c=><button key={c.id} onClick={()=>setSendChain(c.id as typeof sendChain)} style={{padding:'8px 12px',border:'1px solid',borderColor:sendChain===c.id?c.color:'var(--border)',borderRadius:8,background:sendChain===c.id?`${c.color}15`:'var(--bg3)',color:sendChain===c.id?c.color:'var(--text-muted)',...s.mono,fontSize:'0.75rem',fontWeight:700,cursor:'pointer'}}>{c.label}</button>)}</div></div>
           <div style={{marginBottom:12}}><div style={s.label}>TO ADDRESS</div><input className={styles.searchInput} placeholder={sendChain==='SOL'?'SOL...':sendChain==='BTC'?'BTC...':'0x...'} value={sendTo} onChange={e=>setSendTo(e.target.value)}/></div>
           <div style={{marginBottom:16}}><div style={s.label}>AMOUNT</div><div style={{position:'relative'}}><input className={styles.searchInput} placeholder="0.00" type="number" value={sendAmount} onChange={e=>setSendAmount(e.target.value)} style={{width:'100%',paddingRight:60}}/><span style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',fontSize:'0.75rem',color:SEND_CHAINS.find(c=>c.id===sendChain)?.color,...s.mono,fontWeight:700}}>{sendChain}</span></div>{sendAmount&&prices[sendChain]&&<div style={{fontSize:'0.68rem',...s.muted,marginTop:4}}>≈ ${(parseFloat(sendAmount||'0')*(prices[sendChain]?.price||0)).toFixed(2)} · FREE ⚡</div>}</div>
-          {addressBook.length>0&&<div style={{marginBottom:12}}>{addressBook.map((e,i)=><div key={i} onClick={()=>setSendTo(e.address)} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:8,marginBottom:6,cursor:'pointer'}}><span>👤</span><div><div style={{fontSize:'0.75rem',color:'var(--text)'}}>{e.name}</div><div style={{fontSize:'0.65rem',...s.muted}}>{e.address.slice(0,10)}...</div></div></div>)}</div>}
-          <button onClick={()=>{const n=prompt('Name:');if(n){const addr=sendTo||'';if(addr)setAddressBook(p=>[...p,{name:n,address:addr}]);else alert('Enter address first!')} style={{background:'none',border:'1px dashed var(--border)',borderRadius:8,...s.muted,...s.mono,fontSize:'0.72rem',padding:'8px',cursor:'pointer',width:'100%',marginBottom:12}}>+ Save to Address Book</button>
+
+          {/* FIX 4: Address book with label + delete button */}
+          {addressBook.length>0&&<div style={{marginBottom:12}}>
+            <div style={{fontSize:'0.62rem',color:'var(--text-muted)',marginBottom:6,fontFamily:'var(--font-mono)',letterSpacing:'0.08em'}}>── ADDRESS BOOK ──</div>
+            {addressBook.map((e,i)=>(
+              <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 12px',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:8,marginBottom:6}}>
+                <div onClick={()=>setSendTo(e.address)} style={{cursor:'pointer',flex:1,display:'flex',alignItems:'center',gap:10}}>
+                  <span>👤</span>
+                  <div>
+                    <div style={{fontSize:'0.75rem',color:'var(--text)'}}>{e.name}</div>
+                    <div style={{fontSize:'0.65rem',...s.muted,fontFamily:'var(--font-mono)'}}>{e.address.slice(0,12)}...{e.address.slice(-6)}</div>
+                  </div>
+                </div>
+                <button onClick={(ev)=>{ev.stopPropagation();setAddressBook(p=>p.filter((_,idx)=>idx!==i))}} style={{padding:'4px 8px',background:'rgba(255,68,102,0.1)',border:'1px solid rgba(255,68,102,0.2)',borderRadius:6,color:'#ff4466',fontSize:'0.65rem',cursor:'pointer',marginLeft:8}}>✕</button>
+              </div>
+            ))}
+          </div>}
+
+          {/* FIX 5: Save button - fixed closing brackets */}
+          <button onClick={()=>{
+            const n=prompt('Contact name:')
+            if(n && n.trim()){
+              const addr=sendTo.trim()
+              if(addr) setAddressBook(p=>[...p,{name:n.trim(),address:addr}])
+              else alert('Enter address first!')
+            }
+          }} style={{background:'none',border:'1px dashed var(--border)',borderRadius:8,color:'var(--text-muted)',fontFamily:'var(--font-mono)',fontSize:'0.72rem',padding:'8px',cursor:'pointer',width:'100%',marginBottom:12}}>+ Save to Address Book</button>
+
           {sendError&&<div style={{padding:'10px',background:'rgba(255,68,102,0.08)',border:'1px solid rgba(255,68,102,0.2)',borderRadius:8,color:'#ff4466',fontSize:'0.75rem',marginBottom:12}}>⚠ {sendError}</div>}
           {sendSuccess&&<div style={{padding:'10px',background:'rgba(0,255,136,0.05)',border:'1px solid rgba(0,255,136,0.2)',borderRadius:8,color:'#00ff88',fontSize:'0.75rem',marginBottom:12}}>{sendSuccess}</div>}
           <button className={styles.searchBtn} style={{width:'100%',padding:'13px'}} onClick={handleSend} disabled={sendLoading||!sendTo||!sendAmount}>{sendLoading?'⏳ Processing...':`📤 Send ${sendChain} · FREE ⚡`}</button>
@@ -509,5 +529,5 @@ export default function TheWall() {
       </nav>
     </div>
   )
-      }
-// v2
+}
+// v3 - address book fix
