@@ -115,8 +115,8 @@ Ask about swaps, chains, gas, wallets — available 24/7.
 
 ## 👤 Developer
 
-**Divin K K** (Emobies05)  
-Kerala → Dubai · Self-taught · Built on phone using Termux + Acode  
+**Thewin** (Emobies05)  
+India 🇮🇳→ Dubai 🇦🇪 · Self-taught · Built on phone using Termux + Acode  
 [github.com/Emobies-app](https://github.com/Emobies-app)
 
 ---
