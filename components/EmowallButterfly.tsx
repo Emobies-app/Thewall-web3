@@ -61,7 +61,7 @@ export default function EmowallButterfly() {
   const targetFlap = useRef(0.014)
   const pos     = useRef({ x: 100, y: 100 })
   const chatPos = useRef({ left: 0, top: 0 })
-  const wpRef   = useRef(getWaypoints(window.innerWidth-165, window.innerHeight-155))
+  const wpRef   = useRef<{x:number;y:number}[]>([])
   const wpIdx   = useRef(0)
   const soundInt = useRef<any>(null)
   const stateRef = useRef<BfState>('idle')
@@ -223,6 +223,9 @@ export default function EmowallButterfly() {
 
   // Animation loop
   useEffect(()=>{
+    // Initialize after mount (browser only)
+    pos.current = { x: 100, y: 100 }
+    wpRef.current = getWaypoints(window.innerWidth-165, window.innerHeight-155)
     startSound()
     function loop() {
       frame.current++
