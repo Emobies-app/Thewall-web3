@@ -14,7 +14,7 @@ Always end response with 🦋`
 export async function POST(req: NextRequest) {
   try {
     const { messages } = await req.json()
-    const key = process.env.GEMINI_KEY_HERE || process.env.NEXT_PUBLIC_GEMINI_KEY || ''
+    const key = process.env.NEXT_PUBLIC_GEMINI_KEY || process.env.GEMINI_KEY_HERE || ''
     
     if (!key) {
       return NextResponse.json({ reply: '🦋 AI not configured yet. Coming soon!' })
