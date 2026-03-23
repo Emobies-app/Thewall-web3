@@ -61,6 +61,7 @@ export default function EmowallButterfly() {
   const targetFlap = useRef(0.014)
   const pos     = useRef({ x: 100, y: 100 })
   const chatPos = useRef({ left: 0, top: 0 })
+  const [chatStyle, setChatStyle] = useState({ left: '0px', top: '0px' })
   const wpRef   = useRef<{x:number;y:number}[]>([])
   const wpIdx   = useRef(0)
   const soundInt = useRef<any>(null)
@@ -110,7 +111,7 @@ export default function EmowallButterfly() {
     if (cl<8) cl=Math.max(8,(window.innerWidth-chatW)/2)
     ct=Math.max(8,Math.min(ct,window.innerHeight-chatH-8))
     chatPos.current={left:cl,top:ct}
-    if (chatRef.current) { chatRef.current.style.left=cl+'px'; chatRef.current.style.top=ct+'px' }
+    setChatStyle({left:cl+'px',top:ct+'px'})
     setChatOpen(true)
   }
 
@@ -190,6 +191,7 @@ export default function EmowallButterfly() {
     const cl=Math.max(0,Math.min(window.innerWidth-310,e.clientX-chatOX.current))
     const ct=Math.max(0,Math.min(window.innerHeight-200,e.clientY-chatOY.current))
     chatPos.current={left:cl,top:ct}
+    setChatStyle({left:cl+'px',top:ct+'px'})
     if (chatRef.current) { chatRef.current.style.left=cl+'px'; chatRef.current.style.top=ct+'px' }
   }
   function onChatUp() { chatDown.current=false }
@@ -284,7 +286,7 @@ export default function EmowallButterfly() {
       </div>}
 
       {/* Chat Panel */}
-      {chatOpen&&<div ref={chatRef} style={{position:'fixed',width:300,maxHeight:'60vh',
+      {chatOpen&&<div ref={chatRef} style={{position:'fixed',width:300,maxHeight:'60vh',left:chatStyle.left,top:chatStyle.top,
         background:'#070e1d',border:'1px solid #627eea33',borderRadius:20,zIndex:9998,
         display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 0 40px #627eea22'}}>
         {/* Header */}
