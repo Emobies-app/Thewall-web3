@@ -389,12 +389,9 @@ export default function TheWall() {
 
           {/* FIX 5: Save button - fixed closing brackets */}
           <button onClick={()=>{
+            if(!sendTo.trim()){ setSendError('Enter address first to save!'); return }
             const n=prompt('Contact name:')
-            if(n && n.trim()){
-              const addr=sendTo.trim()
-              if(addr) setAddressBook(p=>[...p,{name:n.trim(),address:addr}])
-              else alert('Enter address first!')
-            }
+            if(n?.trim()) setAddressBook(p=>[...p,{name:n.trim(),address:sendTo.trim()}])
           }} style={{background:'none',border:'1px dashed var(--border)',borderRadius:8,color:'var(--text-muted)',fontFamily:'var(--font-mono)',fontSize:'0.72rem',padding:'8px',cursor:'pointer',width:'100%',marginBottom:12}}>+ Save to Address Book</button>
 
           {sendError&&<div style={{padding:'10px',background:'rgba(255,68,102,0.08)',border:'1px solid rgba(255,68,102,0.2)',borderRadius:8,color:'#ff4466',fontSize:'0.75rem',marginBottom:12}}>⚠ {sendError}</div>}
@@ -530,4 +527,4 @@ export default function TheWall() {
     </div>
   )
 }
-// v3 - address book fix
+// v4 - save button fix
