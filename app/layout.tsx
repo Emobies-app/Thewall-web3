@@ -2,7 +2,13 @@ import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import './globals.css'
 import { WalletProvider } from './context/wallet'
-import { EmowallAIChat } from '@/components/EmowallButterfly'
+import dynamic from 'next/dynamic'
+
+// ── Load butterfly client-side only (no SSR) ──
+const EmowallAIChat = dynamic(
+  () => import('@/components/EmowallButterfly').then(m => m.EmowallAIChat || m.default),
+  { ssr: false }
+)
 
 export const metadata: Metadata = {
   title: '⬡ THE WALL',
