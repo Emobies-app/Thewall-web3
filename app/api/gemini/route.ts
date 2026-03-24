@@ -14,41 +14,42 @@ Always end response with 🦋`
 export async function POST(req: NextRequest) {
   try {
     const { messages } = await req.json()
-    const key = process.env.WALL_CLOUDE_AI || ''
+    const key = process.env.OPENAI_KEY || ''
 
     if (!key) {
       return NextResponse.json({ reply: '🦋 AI not configured!' })
     }
 
-    // Convert messages to Claude format
-    const claudeMsgs = (messages || []).map((m: any) => ({
+    // Convert messages to OpenAI format
+    const openaiMsgs = (messages || []).map((m: any) => ({
       role: m.role === 'model' ? 'assistant' : 'user',
       content: m.parts?.[0]?.text || m.text || ''
     })).filter((m: any) => m.content)
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01'
+        'Authorization': `Bearer ${key}`
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+        model: 'gpt-3.5-turbo',
         max_tokens: 150,
-        system: SYSTEM_PROMPT,
-        messages: claudeMsgs.length > 0 ? claudeMsgs : [{ role: 'user', content: 'Hello' }]
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          ...(openaiMsgs.length > 0 ? openaiMsgs : [{ role: 'user', content: 'Hello' }])
+        ]
       })
     })
 
     const data = await res.json()
 
     if (data.error) {
-      console.error('Claude error:', data.error)
+      console.error('OpenAI error:', data.error)
       return NextResponse.json({ reply: '🦋 ' + (data.error.message || 'Try again!') })
     }
 
-    const reply = data?.content?.[0]?.text || '🦋 Sorry, try again!'
+    const reply = data?.choices?.[0]?.message?.content || '🦋 Sorry, try again!'
     return NextResponse.json({ reply })
 
   } catch (e: any) {
