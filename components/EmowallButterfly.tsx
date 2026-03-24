@@ -197,9 +197,6 @@ export default function EmowallButterfly() {
   function onChatUp() { chatDown.current=false }
 
   // Gemini
-  const GEMINI_KEY = 'YOUR_GEMINI_KEY_HERE'
-  const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`
-
   async function sendMsg() {
     const val=input.trim(); if (!val) return
     setInput('')
@@ -207,19 +204,17 @@ export default function EmowallButterfly() {
     chatHistory.current.push({role:'user',parts:[{text:val}]})
     setMsgs(p=>[...p,{role:'ai',text:'🦋 thinking...'}])
     try {
-      const res=await fetch(GEMINI_URL,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          system_instruction:{parts:[{text:'You are Emowall AI, guardian of TheWall Web3 wallet by Divin (Dwin Universe). Help with ETH/SOL/BTC/ARB/MON chains, wallet security (5FA), transactions, Web3. Be short, friendly, max 2-3 sentences. End with 🦋'}]},
-          contents:chatHistory.current,
-          generationConfig:{maxOutputTokens:150,temperature:0.7}
-        })
+      const res=await fetch('/api/gemini',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({messages:chatHistory.current})
       })
       const data=await res.json()
-      const reply=data?.candidates?.[0]?.content?.parts?.[0]?.text||'🦋 Sorry, try again!'
+      const reply=data?.reply||'🦋 Ask me about your wallet!'
       chatHistory.current.push({role:'model',parts:[{text:reply}]})
       setMsgs(p=>[...p.slice(0,-1),{role:'ai',text:reply}])
     } catch {
-      setMsgs(p=>[...p.slice(0,-1),{role:'ai',text:'🦋 Connection error. Try again!'}])
+      setMsgs(p=>[...p.slice(0,-1),{role:'ai',text:'🦋 Ask me about ETH, SOL, BTC, security or swaps!'}])
     }
   }
 
