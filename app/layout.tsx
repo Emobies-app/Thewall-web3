@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import './globals.css'
 import { WalletProvider } from './context/wallet'
 import dynamic from 'next/dynamic'
-import SWRegister from './sw-register'   // ← ADD THIS
+import SWRegister from './sw-register'
 
 const EmowallAIChat = dynamic(
   () => import('@/components/EmowallButterfly').then(m => m.EmowallAIChat || m.default),
@@ -34,9 +34,18 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#030508" />
+        <meta name="serviceworker" content="/sw.js" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="TheWall" />
+      </head>
       <body>
         <WalletProvider>
-          <SWRegister />              {/* ← ADD THIS */}
+          <SWRegister />
           {children}
           <EmowallAIChat />
         </WalletProvider>
