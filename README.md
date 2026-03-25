@@ -3,7 +3,7 @@
 > **Protect your invisible valuable Currencies.**
 > *Web3 · 5 Chains · Gasless · No Seed Phrase*
 
-Built by **Thewin** (Dwin 05) · India → Dubai                                         🇮🇳🇦🇪
+Built by **Thewin** (Dwin 05) - India → Dubai                                         🇮🇳🇦🇪
 
 ---
 
