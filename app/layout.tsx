@@ -3,8 +3,8 @@ import type { ReactNode } from 'react'
 import './globals.css'
 import { WalletProvider } from './context/wallet'
 import dynamic from 'next/dynamic'
+import SWRegister from './sw-register'   // ← ADD THIS
 
-// ── Load butterfly client-side only (no SSR) ──
 const EmowallAIChat = dynamic(
   () => import('@/components/EmowallButterfly').then(m => m.EmowallAIChat || m.default),
   { ssr: false }
@@ -31,15 +31,12 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({ 
-  children 
-}: { 
-  children: ReactNode 
-}) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
         <WalletProvider>
+          <SWRegister />              {/* ← ADD THIS */}
           {children}
           <EmowallAIChat />
         </WalletProvider>
