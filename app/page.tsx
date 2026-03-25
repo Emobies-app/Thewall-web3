@@ -12,9 +12,9 @@ interface SwapState   { fromToken: string; toToken: string; amount: string; esti
 interface PriceAlert  { id: string; symbol: string; targetPrice: number; condition: 'above'|'below'; triggered: boolean }
 interface SearchResult { address: string; ethBalance: number; ethUsd: number; txCount: number; loading: boolean; error: string }
 
-const MAIN_WALLET = '0xba24d47ef3f4e1000000000000000000f3f4e1'
-const TREASURY    = '0xecbdebb62d636808a3e94183070585814127393d'
-const SOL_WALLET  = '5auZoWJxJodSU8dwgKmAfmphv5Z9Su3HAzEdLz1EUZs7'
+const MAIN_WALLET = ''
+const TREASURY    = ''
+const SOL_WALLET  = ''
 const GOAL_USD    = 6_200_000
 const EMOCOIN     = { balance: 250, priceUsd: 0.01 }
 
