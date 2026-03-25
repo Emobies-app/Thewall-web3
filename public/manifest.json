@@ -1,35 +1,38 @@
+```json
 {
   "name": "TheWall Web3 Wallet",
   "short_name": "TheWall",
   "description": "5-Chain Web3 Wallet — ETH · SOL · BTC · ARB · MON · Gasless · No Seed Phrase",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#060c1a",
   "theme_color": "#627eea",
-  "orientation": "portrait",
-  "scope": "/",
   "lang": "en",
   "categories": ["finance", "utilities"],
+  "prefer_related_applications": false,
   "icons": [
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "screenshots": [
     {
       "src": "/screenshot1.png",
       "sizes": "390x844",
       "type": "image/png",
-      "form_factor": "narrow"
+      "form_factor": "narrow",
+      "label": "TheWall Login — 5-Chain Web3 Wallet"
+    },
+    {
+      "src": "/screenshot2.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "TheWall Dashboard with Emowall AI"
     }
   ],
   "shortcuts": [
@@ -49,3 +52,4 @@
     }
   ]
 }
+```
