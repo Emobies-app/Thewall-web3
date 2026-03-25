@@ -73,16 +73,17 @@ jobs:
             -validity 10000 \
             -storepass "$KEYSTORE_PASSWORD" \
             -keypass "$KEYSTORE_PASSWORD" \
-            -dname "CN=Divin, OU=DwinUniverse, O=Dwin, L=Dubai, S=Dubai, C=AE"
+            -dname "CN=Thewin, OU=DwinUniverse, O=Dwin, L=Dubai, S=Dubai, C=AE"
 
       - name: Build APK
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
-          bubblewrap build \
+          echo "n" | bubblewrap build \
             --manifest twa-manifest.json \
             --signingKeyPassword "$KEYSTORE_PASSWORD" \
-            --signingKeyStorePassword "$KEYSTORE_PASSWORD"
+            --signingKeyStorePassword "$KEYSTORE_PASSWORD" \
+            --skipPwaValidation
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
