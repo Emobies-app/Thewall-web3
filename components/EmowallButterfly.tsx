@@ -335,14 +335,7 @@ export default function EmowallButterfly() {
         color:state==='alert'?'#ff2244':state==='chat'?'#00e5ff':state==='held'?'#9945ff':'rgba(232,244,253,0.3)',
         zIndex:9996,pointerEvents:'none'}}>{status}</div>
 
-      {/* Alert button */}
-      <div style={{position:'fixed',bottom:16,right:16,zIndex:9996}}>
-        <button onClick={()=>applyState('alert')}
-          style={{padding:'6px 12px',borderRadius:8,fontFamily:'monospace',fontSize:'0.65rem',
-            cursor:'pointer',border:'1px solid #ff2244',background:'rgba(255,34,68,0.1)',color:'#ff2244'}}>
-          🚨 Security Alert
-        </button>
-      </div>
+      {/* Security alert = triggered internally only */}
 
       {/* Butterfly */}
       <div ref={bfRef} onPointerDown={onBfDown} onPointerMove={onBfMove} onPointerUp={onBfUp}
