@@ -37,11 +37,23 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#030508" />
-        <meta name="serviceworker" content="/sw.js" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="TheWall" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js')
+                    .then(function(reg) { console.log('[SW] registered', reg.scope); })
+                    .catch(function(err) { console.error('[SW] error', err); });
+                });
+              }
+            `
+          }}
+        />
       </head>
       <body>
         <WalletProvider>
