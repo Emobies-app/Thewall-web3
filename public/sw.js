@@ -43,16 +43,10 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // Skip non-GET
   if (e.request.method !== 'GET') return;
-
-  // Skip blockchain / AI / external APIs
   if (SKIP_HOSTS.some(h => url.hostname.includes(h))) return;
-
-  // Skip your own API routes
   if (url.pathname.startsWith('/api/')) return;
 
-  // _next/static — cache forever (content-hashed by Next.js)
   if (url.pathname.startsWith('/_next/static/')) {
     e.respondWith(
       caches.match(e.request).then(cached =>
@@ -65,7 +59,6 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Pages — network first, fallback to cache, then offline
   e.respondWith(
     fetch(e.request)
       .then(res => {
@@ -113,4 +106,28 @@ self.addEventListener('sync', e => {
     e.waitUntil(Promise.resolve(
       console.log('[TheWall SW] retrying queued transactions')
     ));
+});
+
+// ── Periodic Sync ─────────────────────────────
+self.addEventListener('periodicsync', e => {
+  if (e.tag === 'price-update') {
+    e.waitUntil(
+      fetch('/api/prices')
+        .then(r => r.json())
+        .then(data => {
+          console.log('[TheWall SW] prices synced', data)
+        })
+        .catch(() => console.log('[TheWall SW] price sync failed'))
+    )
+  }
+  if (e.tag === 'wallet-check') {
+    e.waitUntil(
+      fetch('/api/balance')
+        .then(r => r.json())
+        .then(data => {
+          console.log('[TheWall SW] wallet synced', data)
+        })
+        .catch(() => {})
+    )
+  }
 });
