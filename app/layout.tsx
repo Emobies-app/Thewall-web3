@@ -12,10 +12,22 @@ const EmowallAIChat = dynamic(
 
 export const metadata: Metadata = {
   title: '⬡ THE WALL',
-  description: 'Web3 Wallet · 5 Chains · Gasless · No Seed Phrase',
+  description: '5-Chain Web3 Wallet — ETH · SOL · BTC · ARB · MON · Gasless · No Seed Phrase',
+  manifest: '/manifest.json',
+  themeColor: '#627eea',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'TheWall',
+  },
   icons: {
     icon: '/logo.svg',
-    apple: '/logo.svg',
+    apple: '/icon-192.png',
+  },
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
   },
 }
 
