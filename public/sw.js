@@ -1,52 +1,116 @@
-const CACHE = 'thewall-v1';
-const APP_SHELL = [
+// TheWall Service Worker — Next.js 14 + Vercel
+const CACHE = 'thewall-v2';
+
+const SHELL = [
   '/',
-  '/index.html',
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',
-  '/offline.html'
+  '/offline.html',
 ];
 
-// Install — cache app shell
+const SKIP_HOSTS = [
+  'alchemy.com',
+  'walletconnect.com',
+  'walletconnect.org',
+  'coingecko.com',
+  'anthropic.com',
+  'niledb.com',
+  'helius-rpc.com',
+];
+
+// ── Install: cache app shell ──────────────────
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(APP_SHELL))
+    caches.open(CACHE)
+      .then(c => c.addAll(SHELL))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
-// Activate — clean old caches
+// ── Activate: remove old caches ──────────────
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    )
+      Promise.all(
+        keys.filter(k => k !== CACHE).map(k => caches.delete(k))
+      )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// Fetch — cache-first for shell, network-first for API
+// ── Fetch: smart caching strategy ────────────
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // Skip non-GET and cross-origin (RPC calls etc)
-  if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+  // Skip non-GET
+  if (e.request.method !== 'GET') return;
 
+  // Skip blockchain / AI / external APIs
+  if (SKIP_HOSTS.some(h => url.hostname.includes(h))) return;
+
+  // Skip your own API routes
+  if (url.pathname.startsWith('/api/')) return;
+
+  // _next/static — cache forever (content-hashed by Next.js)
+  if (url.pathname.startsWith('/_next/static/')) {
+    e.respondWith(
+      caches.match(e.request).then(cached =>
+        cached || fetch(e.request).then(res => {
+          caches.open(CACHE).then(c => c.put(e.request, res.clone()));
+          return res;
+        })
+      )
+    );
+    return;
+  }
+
+  // Pages — network first, fallback to cache, then offline
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      if (cached) return cached;
-      return fetch(e.request).then(res => {
-        const clone = res.clone();
-        caches.open(CACHE).then(c => c.put(e.request, clone));
+    fetch(e.request)
+      .then(res => {
+        caches.open(CACHE).then(c => c.put(e.request, res.clone()));
         return res;
-      }).catch(() => caches.match('/offline.html'));
+      })
+      .catch(() =>
+        caches.match(e.request)
+          .then(cached => cached || caches.match('/offline.html'))
+      )
+  );
+});
+
+// ── Push Notifications ────────────────────────
+self.addEventListener('push', e => {
+  const d = e.data?.json() ?? {
+    title: '🧱 TheWall',
+    body: 'New wallet activity',
+    url: '/'
+  };
+  e.waitUntil(
+    self.registration.showNotification(d.title, {
+      body: d.body,
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      vibrate: [200, 100, 200],
+      data: { url: d.url || '/' },
+      actions: [
+        { action: 'view', title: 'Open Wallet' },
+        { action: 'dismiss', title: 'Dismiss' }
+      ]
     })
   );
 });
-Then register it in your main index.html or app.js:
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js')
-    .then(reg => console.log('SW registered', reg.scope))
-    .catch(err => console.error('SW failed', err));
-}
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  if (e.action !== 'dismiss')
+    e.waitUntil(clients.openWindow(e.notification.data.url));
+});
+
+// ── Background Sync ───────────────────────────
+self.addEventListener('sync', e => {
+  if (e.tag === 'tx-retry')
+    e.waitUntil(Promise.resolve(
+      console.log('[TheWall SW] retrying queued transactions')
+    ));
+});
