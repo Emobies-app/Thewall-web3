@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
         'Authorization': `Bearer ${key}`
       },
       body: JSON.stringify({
-        model: 'grok-3-mini',
+        model: 'grok-beta',
         max_tokens: 150,
         temperature: 0.7,
         messages: [
