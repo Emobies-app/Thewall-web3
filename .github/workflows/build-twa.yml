@@ -25,11 +25,14 @@ jobs:
       - name: Install Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
-      - name: Set up JDK 17
+      - name: Install JDK 17 (required BEFORE bubblewrap init)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
+
+      - name: Verify Java installation
+        run: java -version
 
       - name: Init Bubblewrap (non-interactive)
         env:
