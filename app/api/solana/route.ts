@@ -4,10 +4,10 @@ const SOL_WALLET = '5auZoWJxJodSU8dwgKmAfmphv5Z9Su3HAzEdLz1EUZs7'
 
 export async function GET() {
   try {
-    const alchemyKey = process.env.ALCHEMY_API_KEY
-    const heliusKey  = process.env.HELIUS_API_KEY
+    const alchemyKey = process.env.ALCHEMYAPIKEY
+    const heliusKey  = process.env.HELIUSAPIKEY
 
-    // Use Helius first, then Alchemy, then public
+    // RPC priority: Helius → Alchemy → Public
     const rpcUrl = heliusKey
       ? `https://mainnet.helius-rpc.com/?api-key=${heliusKey}`
       : alchemyKey
@@ -19,20 +19,23 @@ export async function GET() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        jsonrpc: '2.0', id: 1,
+        jsonrpc: '2.0',
+        id: 1,
         method: 'getBalance',
         params: [SOL_WALLET],
       }),
     })
+
     const balData = await balRes.json()
     const solBalance = (balData.result?.value || 0) / 1e9
 
-    // Fetch token accounts (JitoSOL, LST etc)
+    // Fetch token accounts
     const tokenRes = await fetch(rpcUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        jsonrpc: '2.0', id: 2,
+        jsonrpc: '2.0',
+        id: 2,
         method: 'getTokenAccountsByOwner',
         params: [
           SOL_WALLET,
@@ -41,31 +44,21 @@ export async function GET() {
         ],
       }),
     })
+
     const tokenData = await tokenRes.json()
     const tokenAccounts = tokenData.result?.value || []
 
     // Parse token balances
     const tokens = tokenAccounts
-      .map((acc: {
-        account: {
-          data: {
-            parsed: {
-              info: {
-                mint: string
-                tokenAmount: {
-                  uiAmount: number
-                  decimals: number
-                }
-              }
-            }
-          }
+      .map((acc) => {
+        const info = acc.account.data.parsed.info
+        return {
+          mint: info.mint,
+          balance: info.tokenAmount.uiAmount || 0,
+          decimals: info.tokenAmount.decimals,
         }
-      }) => ({
-        mint:    acc.account.data.parsed.info.mint,
-        balance: acc.account.data.parsed.info.tokenAmount.uiAmount || 0,
-        decimals: acc.account.data.parsed.info.tokenAmount.decimals,
-      }))
-      .filter((t: { balance: number }) => t.balance > 0)
+      })
+      .filter((t) => t.balance > 0)
 
     return NextResponse.json({
       solBalance,
@@ -73,7 +66,8 @@ export async function GET() {
       tokens,
       rpcUsed: heliusKey ? 'Helius' : alchemyKey ? 'Alchemy' : 'Public',
     })
-  } catch {
+  } catch (err) {
+    console.error(err)
     return NextResponse.json({
       solBalance: 0,
       wallet: SOL_WALLET,
