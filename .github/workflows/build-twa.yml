@@ -1,38 +1,94 @@
 name: Build TWA APK
 
 on:
-  push:
-    branches: [ "main" ]
   workflow_dispatch:
+  push:
+    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Install Node.js
-        uses: actions/setup-node@v3
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
-          node-version: 18
+          java-version: '17'
+          distribution: 'temurin'
 
-      - name: Install Bubblewrap CLI
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Bubblewrap
         run: npm install -g @bubblewrap/cli
 
-      - name: Install JDK 17
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Install Android SDK
+      - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install project dependencies
-        run: npm install
-
-      - name: Build TWA APK (non-interactive)
+      - name: Create twa-manifest.json
         run: |
-          yes "Y" | bubblewrap build
+          cat > twa-manifest.json << 'MANIFEST'
+          {
+            "packageId": "com.dwin.thewall",
+            "host": "thewall.e-mobies.com",
+            "name": "TheWall",
+            "launcherName": "TheWall",
+            "display": "standalone",
+            "themeColor": "#627eea",
+            "navigationColor": "#060c1a",
+            "backgroundColor": "#060c1a",
+            "startUrl": "/",
+            "iconUrl": "https://thewall.e-mobies.com/icon-512.png",
+            "splashScreenFadeOutDuration": 300,
+            "signingKey": {
+              "path": "thewall.keystore",
+              "alias": "thewall"
+            },
+            "appVersionCode": 1,
+            "appVersionName": "1.0.0",
+            "shortcuts": [],
+            "generatorApp": "bubblewrap-cli",
+            "webManifestUrl": "https://thewall.e-mobies.com/manifest.json",
+            "fallbackType": "customtabs",
+            "features": {},
+            "alphaDependencies": {},
+            "enableNotifications": false,
+            "orientation": "portrait",
+            "fingerprints": []
+          }
+          MANIFEST
+
+      - name: Create Keystore
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          keytool -genkey -v \
+            -keystore thewall.keystore \
+            -alias thewall \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass "$KEYSTORE_PASSWORD" \
+            -keypass "$KEYSTORE_PASSWORD" \
+            -dname "CN=Thewin, OU=DwinUniverse, O=Dwin, L=Dubai, S=Dubai, C=AE"
+
+      - name: Build APK (non-interactive)
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          yes "Y" | bubblewrap build \
+            --manifest twa-manifest.json \
+            --signingKeyPassword "$KEYSTORE_PASSWORD" \
+            --signingKeyStorePassword "$KEYSTORE_PASSWORD" \
+            --skipPwaValidation
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: thewall-apk
+          path: |
+            app-release-signed.apk
+            app-release-signed.aab
