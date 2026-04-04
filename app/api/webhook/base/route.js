@@ -1,20 +1,26 @@
-export const config = {
-  api: {
-    bodyParser: true,
-  },
-};
+import { NextResponse } from 'next/server';
 
-export default function handler(req, res) {
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const preferredRegion = 'auto';
+
+export async function POST(req) {
   try {
-    if (req.method === "POST") {
-      console.log("BASE webhook received:", req.body);
-      return res.status(200).json({ ok: true });
-    }
+    const rawBody = await req.text();
 
-    // For browser testing
-    return res.status(200).send("Webhook endpoint is live");
-  } catch (err) {
-    console.error("Webhook error:", err);
-    return res.status(500).json({ ok: false });
+    let data = {};
+    try {
+      data = JSON.parse(rawBody);
+    } catch (e) {}
+
+    console.log('Webhook received:', data);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Webhook error:', error);
+    return NextResponse.json(
+      { error: 'Webhook processing failed' },
+      { status: 500 }
+    );
   }
 }
