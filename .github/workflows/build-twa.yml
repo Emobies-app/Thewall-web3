@@ -1,14 +1,48 @@
+name: Build TWA APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-twa:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Bubblewrap CLI
+        run: npm install -g @bubblewrap/cli
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Init Bubblewrap (non-interactive)
         env:
           BUBBLEWRAP_NO_JDK_INSTALL: "1"
         run: |
           bubblewrap init \
             --manifest=https://yourdomain.com/manifest.json \
             --overwrite \
-            --no-input
+            --no-input \
+            --skip-install
 
       - name: Build TWA APK
-        run: |
-          bubblewrap build
+        run: bubblewrap build
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
