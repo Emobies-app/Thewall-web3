@@ -3,52 +3,66 @@ name: Build TWA APK
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
-  build-twa:
+  build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Bubblewrap CLI
-        run: npm install -g @bubblewrap/cli
-
-      - name: Install JDK 17 (required BEFORE bubblewrap init)
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: 17
+          java-version: '17'
+          distribution: 'temurin'
 
-      - name: Verify Java installation
-        run: java -version
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Bubblewrap
+        run: npm install -g @bubblewrap/cli
 
       - name: Init Bubblewrap (non-interactive)
-        env:
-          BUBBLEWRAP_NO_JDK_INSTALL: "1"
         run: |
           bubblewrap init \
-            --manifest=https://yourdomain.com/manifest.json \
-            --overwrite \
-            --no-input \
-            --skip-install
+            --manifest https://thewall.e-mobies.com/manifest.json \
+            --directory twa-project \
+            --skipPwaValidation \
+            --jdkPath $(which java | xargs dirname | xargs dirname)
 
-      - name: Build TWA APK
-        run: bubblewrap build
+      - name: Create Keystore
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          keytool -genkey -v \
+            -keystore twa-project/android.keystore \
+            -alias thewall \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass "$KEYSTORE_PASSWORD" \
+            -keypass "$KEYSTORE_PASSWORD" \
+            -dname "CN=Divin, OU=DwinUniverse, O=Dwin, L=Dubai, S=Dubai, C=AE"
 
-      - name: Upload APK artifact
+      - name: Build APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          cd twa-project
+          bubblewrap build \
+            --signingKeyPassword "$KEYSTORE_PASSWORD" \
+            --signingKeyStorePassword "$KEYSTORE_PASSWORD"
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: thewall-web3-twa-apk
-          path: ./output/*.apk
+          name: thewall-apk
+          path: |
+            twa-project/app-release-signed.apk
+            twa-project/app-release-signed.aab
