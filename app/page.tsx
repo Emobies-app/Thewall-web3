@@ -14,7 +14,7 @@ interface SearchResult { address: string; ethBalance: number; ethUsd: number; tx
 
 const MAIN_WALLET = ''
 const TREASURY    = ''
-const SOL_WALLET  = ''
+const SOL_WALLET  = '5auZoWJxJodSU8dwgKmAfmphv5Z9Su3HAzEdLz1EUZs7'
 const GOAL_USD    = 6_200_000
 const EMOCOIN     = { balance: 250, priceUsd: 0.01 }
 
@@ -136,7 +136,7 @@ export default function TheWall() {
     for (const c of [{id:'earth',url:'https://eth.llamarpc.com'},{id:'orbit',url:'https://arb1.arbitrum.io/rpc'},{id:'moon',url:'https://rpc.monad.xyz'}]) {
       try { const r = await fetch(c.url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_blockNumber',params:[]}),signal:AbortSignal.timeout(5000)}); setChainStatus(p=>({...p,[c.id]:r.ok?'online':'offline'})) } catch { setChainStatus(p=>({...p,[c.id]:'offline'})) }
     }
-    try { const r = await fetch('https://api.mainnet-beta.solana.com',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'getSlot',params:[]}),signal:AbortSignal.timeout(5000)}); setChainStatus(p=>({...p,soul:r.ok?'online':'offline'})) } catch { setChainStatus(p=>({...p,soul:'offline'})) }
+    try { const heliusKey = process.env.NEXT_PUBLIC_HELIUS_KEY || ''; const solUrl = heliusKey ? `https://mainnet.helius-rpc.com/?api-key=${heliusKey}` : 'https://api.mainnet-beta.solana.com'; const r = await fetch(solUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'getSlot',params:[]}),signal:AbortSignal.timeout(5000)}); setChainStatus(p=>({...p,soul:r.ok?'online':'offline'})) } catch { setChainStatus(p=>({...p,soul:'offline'})) }
     try { const r = await fetch('https://mempool.space/api/blocks/tip/height',{signal:AbortSignal.timeout(5000)}); setChainStatus(p=>({...p,birth:r.ok?'online':'offline'})) } catch { setChainStatus(p=>({...p,birth:'offline'})) }
   }
 
@@ -527,4 +527,4 @@ export default function TheWall() {
     </div>
   )
 }
-// v4 - save button fix
+// v5 - SOL wallet + Helius RPC fix
