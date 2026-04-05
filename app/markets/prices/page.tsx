@@ -36,7 +36,7 @@ export default function AlchemyPricesDashboard() {
   // Fetch current prices
   const fetchCurrent = async () => {
     if (!alchemyKey) {
-      setError('Alchemy API key not configured. Please add NEXT_PUBLIC_ALCHEMY_API_KEY to .env.local');
+      setError('Alchemy API key not configured. Please add NEXT_PUBLIC_ALCHEMY_API_KEY to your .env.local file');
       setLoading(false);
       return;
     }
@@ -54,7 +54,7 @@ export default function AlchemyPricesDashboard() {
       setCurrentPrices(result.data || []);
       setError('');
     } catch (err: any) {
-      console.error(err);
+      console.error('Current prices error:', err);
       setError(err.message || 'Failed to load current prices');
     }
   };
@@ -88,14 +88,14 @@ export default function AlchemyPricesDashboard() {
       const result = await res.json();
       setHistoricalData(result.prices || result.data || []);
     } catch (err: any) {
-      console.error(err);
+      console.error('Historical data error:', err);
       setError(err.message || 'Failed to load historical data');
     } finally {
       setLoading(false);
     }
   };
 
-  // Initial load and refresh when dependencies change
+  // Load data when component mounts or dependencies change
   useEffect(() => {
     fetchCurrent();
     fetchHistorical(timeRangeDays);
@@ -150,7 +150,7 @@ export default function AlchemyPricesDashboard() {
           </p>
         </div>
 
-        {/* Current Prices */}
+        {/* Current Prices Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           {currentPrices.length > 0 ? (
             currentPrices.map((token) => {
@@ -218,7 +218,7 @@ export default function AlchemyPricesDashboard() {
           </div>
         </div>
 
-        {/* Chart */}
+        {/* Chart Section */}
         <div className="bg-white rounded-3xl shadow-sm p-10">
           <div className="h-[460px] relative">
             {loading && (
@@ -226,12 +226,12 @@ export default function AlchemyPricesDashboard() {
                 <div className="text-gray-500">Loading historical data from Alchemy...</div>
               </div>
             )}
-            {error && <div className="text-red-600 text-center py-12">{error}</div>}
+            {error && <div className="text-red-600 text-center py-12 font-medium">{error}</div>}
             {!loading && !error && historicalData.length > 0 && (
               <Line data={chartData} options={chartOptions} />
             )}
             {!loading && !error && historicalData.length === 0 && (
-              <div className="text-center py-12 text-gray-500">No historical data available</div>
+              <div className="text-center py-12 text-gray-500">No historical data available for this period</div>
             )}
           </div>
         </div>
@@ -242,4 +242,4 @@ export default function AlchemyPricesDashboard() {
       </div>
     </div>
   );
-        }
+                }
