@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Dashboard • Alchemy Prices API</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', system_ui, sans-serif; }
+        .chart-container { position: relative; height: 420px; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+    <div class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-10">
+            <div>
+                <h1 class="text-4xl font-semibold tracking-tight">Crypto Dashboard</h1>
+                <p class="text-gray-600 mt-2 text-lg">Historical and real-time prices for BTC, ETH, and SOL • Powered by Alchemy Prices API</p>
+            </div>
+            <div class="flex items-center gap-x-4">
+                <label class="text-sm font-medium text-gray-700">Alchemy API Key</label>
+                <input id="apiKeyInput" type="password" 
+                       class="px-5 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:border-blue-600 w-96 text-sm"
+                       placeholder="alch-XXXXXXXXXXXXXXXXXXXXXXXX">
+                <button onclick="saveApiKey()" 
+                        class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-2xl transition-all">
+                    Save & Load Data
+                </button>
+            </div>
+        </div>
+
+        <!-- Current Prices -->
+        <div id="currentPrices" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"></div>
+
+        <!-- Controls -->
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-semibold">Price History</h2>
+            <div class="flex gap-x-3 bg-white p-1 rounded-2xl shadow-sm">
+                <button onclick="setTimeRange(7)"  class="time-btn px-6 py-2 text-sm font-medium rounded-xl">7 Days</button>
+                <button onclick="setTimeRange(30)" class="time-btn px-6 py-2 text-sm font-medium rounded-xl active">30 Days</button>
+                <button onclick="setTimeRange(90)" class="time-btn px-6 py-2 text-sm font-medium rounded-xl">90 Days</button>
+                <button onclick="setTimeRange(365)"class="time-btn px-6 py-2 text-sm font-medium rounded-xl">1 Year</button>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex border-b border-gray-200 mb-8">
+            <button onclick="switchCoin(0)" id="tab-0" class="tab-btn flex-1 md:flex-none px-12 py-4 font-semibold border-b-2 border-blue-600 text-blue-600">Bitcoin (BTC)</button>
+            <button onclick="switchCoin(1)" id="tab-1" class="tab-btn flex-1 md:flex-none px-12 py-4 font-semibold text-gray-500">Ethereum (ETH)</button>
+            <button onclick="switchCoin(2)" id="tab-2" class="tab-btn flex-1 md:flex-none px-12 py-4 font-semibold text-gray-500">Solana (SOL)</button>
+        </div>
+
+        <!-- Chart -->
+        <div class="bg-white rounded-3xl shadow p-8">
+            <div class="chart-container">
+                <canvas id="priceChart"></canvas>
+            </div>
+        </div>
+
+        <div class="mt-12 text-center text-xs text-gray-500">
+            Data provided by <a href="https://www.alchemy.com/docs/reference/prices-api-quickstart" target="_blank" class="hover:text-blue-600">Alchemy Prices API</a> • 
+            Built for demonstration and personal use
+        </div>
+    </div>
+
+    <script>
+        let API_KEY = localStorage.getItem('alchemyApiKey') || '';
+        const symbols = ['BTC', 'ETH', 'SOL'];
+        let currentCoinIndex = 0;
+        let timeRangeDays = 30;
+        let priceChart = null;
+
+        function saveApiKey() {
+            const key = document.getElementById('apiKeyInput').value.trim();
+            if (!key) {
+                alert('Please enter your Alchemy API key.');
+                return;
+            }
+            API_KEY = key;
+            localStorage.setItem('alchemyApiKey', key);
+            fetchCurrentPrices();
+            loadHistoricalData();
+        }
+
+        async function fetchCurrentPrices() {
+            if (!API_KEY) return;
+            const container = document.getElementById('currentPrices');
+            container.innerHTML = '<div class="col-span-3 py-16 text-center text-gray-500">Loading current prices...</div>';
+
+            try {
+                const res = await fetch(`https://api.g.alchemy.com/prices/v1/\( {API_KEY}/tokens/by-symbol?symbols= \){symbols.join(',')}`);
+                if (!res.ok) throw new Error('Invalid API key or network error');
+                const result = await res.json();
+                const data = result.data || [];
+
+                container.innerHTML = '';
+                symbols.forEach(symbol => {
+                    const token = data.find(t => t.symbol === symbol);
+                    if (!token?.prices?.[0]) return;
+                    const p = token.prices[0];
+                    const price = parseFloat(p.value).toLocaleString('en-US', {minimumFractionDigits: 2});
+
+                    const html = `
+                        <div class="bg-white rounded-3xl p-8 shadow-sm">
+                            <div class="flex items-center gap-4">
+                                <div class="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-3xl font-bold">${symbol[0]}</div>
+                                <div>
+                                    <div class="font-semibold text-2xl">${symbol}</div>
+                                    <div class="text-gray-500">USD</div>
+                                </div>
+                            </div>
+                            <div class="mt-8">
+                                <div class="text-5xl font-semibold tracking-tighter">$${price}</div>
+                                <div class="text-xs text-emerald-600 mt-3">Last updated: ${new Date(p.lastUpdatedAt).toLocaleString()}</div>
+                            </div>
+                        </div>`;
+                    container.insertAdjacentHTML('beforeend', html);
+                });
+            } catch (e) {
+                container.innerHTML = `<div class="col-span-3 py-16 text-center text-red-600">Failed to load data.<br>Please check your Alchemy API key.</div>`;
+            }
+        }
+
+        async function fetchHistoricalPrices(symbol, days) {
+            if (!API_KEY) return [];
+            const end = new Date().toISOString();
+            const start = new Date(Date.now() - days * 86400000).toISOString();
+
+            try {
+                const res = await fetch(`https://api.g.alchemy.com/prices/v1/${API_KEY}/tokens/historical`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ symbol, startTime: start, endTime: end, interval: '1d' })
+                });
+                if (!res.ok) throw new Error();
+                const result = await res.json();
+                return result.prices || result.data || [];
+            } catch (e) {
+                console.error(e);
+                return [];
+            }
+        }
+
+        async function loadHistoricalData() {
+            const symbol = symbols[currentCoinIndex];
+            const data = await fetchHistoricalPrices(symbol, timeRangeDays);
+
+            if (data.length === 0) {
+                alert(`No historical data received for ${symbol}. Please verify your API key.`);
+                return;
+            }
+
+            const labels = [];
+            const prices = [];
+            data.forEach(pt => {
+                const ts = pt.timestamp || pt.time;
+                const val = parseFloat(pt.price || pt.value);
+                if (ts && !isNaN(val)) {
+                    labels.push(new Date(ts).toLocaleDateString('en-US', {month:'short', day:'numeric'}));
+                    prices.push(val);
+                }
+            });
+
+            if (priceChart) priceChart.destroy();
+
+            priceChart = new Chart(document.getElementById('priceChart'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: `${symbol} Price (USD)`,
+                        data: prices,
+                        borderColor: '#2563eb',
+                        borderWidth: 3,
+                        tension: 0.25,
+                        pointRadius: 0,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { ticks: { callback: v => '$' + v.toLocaleString() }, grid: { color: '#f1f5f9' } },
+                        x: { grid: { color: '#f1f5f9' } }
+                    }
+                }
+            });
+        }
+
+        function switchCoin(i) {
+            currentCoinIndex = i;
+            document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
+                btn.classList.toggle('border-blue-600', idx === i);
+                btn.classList.toggle('text-blue-600', idx === i);
+                btn.classList.toggle('text-gray-500', idx !== i);
+            });
+            loadHistoricalData();
+        }
+
+        function setTimeRange(days) {
+            timeRangeDays = days;
+            document.querySelectorAll('.time-btn').forEach(btn => btn.classList.toggle('active', btn.textContent.includes(days) || (days === 365 && btn.textContent.includes('Year'))));
+            loadHistoricalData();
+        }
+
+        window.onload = () => {
+            if (API_KEY) {
+                document.getElementById('apiKeyInput').value = API_KEY;
+                fetchCurrentPrices();
+                loadHistoricalData();
+            }
+        };
+    </script>
+</body>
+</html>
