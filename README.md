@@ -9,7 +9,9 @@ Built by **Thewin** (Dwin 05) - India → Dubai                                 
 
 ## 🌍 Live
 
-**[thewall.e-mobies.com](https://thewall.e-mobies.com)**
+**[thewall.e-mobies.com]**
+
+(https://thewall.e-mobies.com)
 
 ---
 
@@ -34,7 +36,7 @@ Built by **Thewin** (Dwin 05) - India → Dubai                                 
 | 🌟 Soul   | SOL  | Solana    |
 | 🌙 Moon   | MON  | Monad     |
 | 🪐 Orbit  | ARB  | Arbitrum  |
-| ₿ Birth   | BTC  | Bitcoin   |
+| ₿  Birth  | BTC  | Bitcoin   |
 | 🔵 Base   | BASE | Base      |
 
 ---
