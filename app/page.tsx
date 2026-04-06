@@ -1,200 +1,147 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+/**
+ * TheWall Crypto Dashboard
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Replaces the raw Alchemy HTML demo.
+ *
+ * Security improvements vs original:
+ *  ✅  API key never exposed client-side — all Alchemy calls go through
+ *      /api/prices  and  /api/alchemy-prices  (server-side routes)
+ *  ✅  No localStorage key storage
+ *  ✅  No CORS-exposed direct fetch to api.g.alchemy.com
+ *
+ * Chain identity (TheWall branding):
+ *  BTC → Birth 🌟   ETH → Earth 🌍   SOL → Soul 🔮
+ *  ARB → Orbit 🪐   MON → Moon  🌙
+ */
+
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Filler,
-  Legend,
+  CategoryScale, LinearScale, PointElement,
+  LineElement, Filler, Tooltip, Legend,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
 
 ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Filler,
-  Legend
+  CategoryScale, LinearScale, PointElement,
+  LineElement, Filler, Tooltip, Legend
 );
 
-// ── Chain Identity ──────────────────────────────────────────────────────────
-// symbol matches the keys returned by /api/prices  { prices: { ETH: {...} } }
+// ── Chain Config ─────────────────────────────────────────────────────────────
 const CHAINS = [
-  {
-    id: "ethereum",
-    symbol: "ETH",          // ← /api/prices key
-    name: "Earth",
-    tagline: "The Foundation",
-    color: "#4FC3F7",
-    glow: "rgba(79,195,247,0.35)",
-    icon: "🌍",
-  },
-  {
-    id: "solana",
-    symbol: "SOL",
-    name: "Soul",
-    tagline: "Speed of Light",
-    color: "#B39DDB",
-    glow: "rgba(179,157,219,0.35)",
-    icon: "🔮",
-  },
-  {
-    id: "monad",
-    symbol: "MON",           // placeholder — price: 0.00
-    name: "Moon",
-    tagline: "Rising Force",
-    color: "#80DEEA",
-    glow: "rgba(128,222,234,0.35)",
-    icon: "🌙",
-  },
-  {
-    id: "arbitrum",
-    symbol: "ARB",
-    name: "Orbit",
-    tagline: "Layer Beyond",
-    color: "#90CAF9",
-    glow: "rgba(144,202,249,0.35)",
-    icon: "🪐",
-  },
-  {
-    id: "bitcoin",
-    symbol: "BTC",
-    name: "Birth",
-    tagline: "The Origin",
-    color: "#FFCC80",
-    glow: "rgba(255,204,128,0.35)",
-    icon: "🌟",
-  },
-];
+  { symbol: "BTC", name: "Birth",  icon: "🌟", tagline: "The Origin",      color: "#FFCC80", glow: "rgba(255,204,128,0.2)" },
+  { symbol: "ETH", name: "Earth",  icon: "🌍", tagline: "The Foundation",  color: "#4FC3F7", glow: "rgba(79,195,247,0.2)"  },
+  { symbol: "SOL", name: "Soul",   icon: "🔮", tagline: "Speed of Light",  color: "#B39DDB", glow: "rgba(179,157,219,0.2)" },
+  { symbol: "ARB", name: "Orbit",  icon: "🪐", tagline: "Layer Beyond",    color: "#90CAF9", glow: "rgba(144,202,249,0.2)" },
+  { symbol: "MON", name: "Moon",   icon: "🌙", tagline: "Rising Force",    color: "#80DEEA", glow: "rgba(128,222,234,0.2)" },
+] as const;
 
-// ── Types ───────────────────────────────────────────────────────────────────
-// Matches /api/prices → { prices: { ETH: { price, change24h } } }
-interface ChainPrice { price: number; change24h: number }
-interface PriceData  { [symbol: string]: ChainPrice }
+type ChainSymbol = (typeof CHAINS)[number]["symbol"];
+type TimeRange   = "7D" | "30D" | "90D" | "1Y";
 
-interface HistoricalPoint {
-  timestamp: number;
-  price: number;
-}
+const RANGE_DAYS: Record<TimeRange, number> = { "7D": 7, "30D": 30, "90D": 90, "1Y": 365 };
 
-interface HistoricalData {
-  [chainId: string]: HistoricalPoint[];
-}
+interface ChainPrice  { price: number; change24h: number }
+interface HistPoint   { timestamp: number; price: number }
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
-function fmt(n: number) {
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(2)}k`;
-  if (n >= 1) return `$${n.toFixed(2)}`;
-  return `$${n.toFixed(6)}`;
-}
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const fmt  = (n: number) =>
+  n >= 1000 ? `$${n.toLocaleString("en-US", { minimumFractionDigits: 2 })}` :
+  n >= 1    ? `$${n.toFixed(2)}` :
+              `$${n.toFixed(6)}`;
 
+const fmtDate = (ts: number, range: TimeRange) =>
+  new Date(ts).toLocaleDateString("en-US", range === "7D"
+    ? { weekday: "short" }
+    : { month: "short", day: "numeric" }
+  );
 
-
-// ── Main Component ──────────────────────────────────────────────────────────
-export default function PricesPage() {
-  const [prices, setPrices] = useState<PriceData>({});
-  const [historical, setHistorical] = useState<HistoricalData>({});
+// ── Component ─────────────────────────────────────────────────────────────────
+export default function DashboardPage() {
+  const [prices,      setPrices]      = useState<Record<string, ChainPrice>>({});
+  const [history,     setHistory]     = useState<HistPoint[]>([]);
   const [activeChain, setActiveChain] = useState(CHAINS[0]);
-  const [loading, setLoading] = useState(true);
-  const [histLoading, setHistLoading] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [range, setRange] = useState<"1D" | "7D" | "30D">("7D");
+  const [range,       setRange]       = useState<TimeRange>("30D");
+  const [priceLoading, setPriceLoading] = useState(true);
+  const [chartLoading, setChartLoading] = useState(false);
+  const [lastUpdated,  setLastUpdated]  = useState<Date | null>(null);
+  const [priceError,   setPriceError]   = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Fetch current prices
-  const fetchCurrent = useCallback(async () => {
+  // ── Fetch current prices (/api/prices) ─────────────────────────────────────
+  const fetchPrices = useCallback(async () => {
     try {
-      const res = await fetch("/api/prices");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const res  = await fetch("/api/prices");
+      if (!res.ok) throw new Error();
       const json = await res.json();
-      // API: { prices: { ETH: { price, change24h }, … } }
       setPrices(json.prices ?? json);
       setLastUpdated(new Date());
-      setError(null);
-    } catch (e) {
-      setError("Live prices unavailable");
+      setPriceError(false);
+    } catch {
+      setPriceError(true);
     } finally {
-      setLoading(false);
+      setPriceLoading(false);
     }
   }, []);
 
-  // Fetch historical prices
-  const fetchHistorical = useCallback(async () => {
-    setHistLoading(true);
+  // ── Fetch historical (/api/alchemy-prices) ─────────────────────────────────
+  const fetchHistory = useCallback(async () => {
+    setChartLoading(true);
+    setHistory([]);
     try {
       const res = await fetch(
         `/api/alchemy-prices?chain=${activeChain.symbol}&range=${range}`
       );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setHistorical((prev) => ({
-        ...prev,
-        [`${activeChain.id}-${range}`]: data.prices ?? [],
-      }));
+      if (!res.ok) throw new Error();
+      const json = await res.json();
+      setHistory(json.prices ?? []);
     } catch {
-      // silently fail — chart stays empty
+      setHistory([]);
     } finally {
-      setHistLoading(false);
+      setChartLoading(false);
     }
   }, [activeChain, range]);
 
   useEffect(() => {
-    fetchCurrent();
-    const interval = setInterval(fetchCurrent, 30_000);
-    return () => clearInterval(interval);
-  }, [fetchCurrent]);
+    fetchPrices();
+    intervalRef.current = setInterval(fetchPrices, 30_000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [fetchPrices]);
 
-  useEffect(() => {
-    fetchHistorical();
-  }, [fetchHistorical]);
+  useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
-  // Chart data
-  const histKey = `${activeChain.id}-${range}`;
-  const histPoints: HistoricalPoint[] = historical[histKey] ?? [];
-
+  // ── Chart config ───────────────────────────────────────────────────────────
+  const chain = activeChain;
   const chartData = {
-    labels: histPoints.map((p) => {
-      const d = new Date(p.timestamp);
-      return range === "1D"
-        ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-        : d.toLocaleDateString([], { month: "short", day: "numeric" });
-    }),
-    datasets: [
-      {
-        label: `${activeChain.name} (${activeChain.symbol})`,
-        data: histPoints.map((p) => p.price),
-        borderColor: activeChain.color,
-        backgroundColor: `${activeChain.color}18`,
-        borderWidth: 2,
-        pointRadius: 0,
-        pointHoverRadius: 4,
-        tension: 0.4,
-        fill: true,
-      },
-    ],
+    labels:   history.map(p => fmtDate(p.timestamp, range)),
+    datasets: [{
+      label:           `${chain.name} (${chain.symbol})`,
+      data:            history.map(p => p.price),
+      borderColor:     chain.color,
+      backgroundColor: chain.glow,
+      borderWidth:     2,
+      pointRadius:     0,
+      pointHoverRadius: 5,
+      tension:         0.3,
+      fill:            true,
+    }],
   };
 
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    interaction: { intersect: false, mode: "index" as const },
+    interaction: { mode: "index" as const, intersect: false },
     plugins: {
       legend: { display: false },
       tooltip: {
         backgroundColor: "#0d1117",
-        borderColor: activeChain.color,
-        borderWidth: 1,
-        titleColor: activeChain.color,
-        bodyColor: "#e6edf3",
-        padding: 12,
+        borderColor:     chain.color,
+        borderWidth:     1,
+        titleColor:      chain.color,
+        bodyColor:       "#e6edf3",
+        padding:         12,
         callbacks: {
           label: (ctx: any) => ` ${fmt(ctx.parsed.y)}`,
         },
@@ -202,526 +149,206 @@ export default function PricesPage() {
     },
     scales: {
       x: {
-        grid: { color: "#161b22", drawBorder: false },
-        ticks: {
-          color: "#8b949e",
-          font: { size: 11, family: "'Space Mono', monospace" },
-          maxTicksLimit: range === "1D" ? 8 : range === "7D" ? 7 : 10,
-        },
+        grid:  { color: "#161b22" },
+        ticks: { color: "#8b949e", font: { size: 11, family: "'Space Mono', monospace" }, maxTicksLimit: 8 },
       },
       y: {
         position: "right" as const,
-        grid: { color: "#161b22", drawBorder: false },
+        grid:     { color: "#161b22" },
         ticks: {
-          color: "#8b949e",
-          font: { size: 11, family: "'Space Mono', monospace" },
+          color:    "#8b949e",
+          font:     { size: 11, family: "'Space Mono', monospace" },
           callback: (v: any) => fmt(v),
         },
       },
     },
   };
 
-  const activePriceData: ChainPrice | undefined = prices[activeChain.symbol];
-  const priceChange = activePriceData?.change24h ?? 0;
-  const isPositive = priceChange >= 0;
+  // Price % change
+  const activePrice   = prices[chain.symbol];
+  const priceChange   = activePrice?.change24h ?? 0;
+  const isUp          = priceChange >= 0;
+
+  // Chart trend
+  const trendUp = history.length > 1
+    ? history[history.length - 1].price >= history[0].price
+    : true;
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap');
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
-          background: #010409;
-          color: #e6edf3;
-          font-family: 'Syne', sans-serif;
-          min-height: 100vh;
-          overflow-x: hidden;
-        }
-
-        .prices-page {
-          min-height: 100vh;
-          background: #010409;
-          padding: 0 0 80px 0;
-        }
+        .dash { min-height: 100vh; background: #010409; color: #e6edf3; font-family: 'Syne', sans-serif; padding-bottom: 60px; }
 
         /* ── Header ── */
-        .page-header {
-          padding: 32px 24px 24px;
-          border-bottom: 1px solid #161b22;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 16px;
-          flex-wrap: wrap;
-        }
-        .header-left h1 {
-          font-size: clamp(22px, 5vw, 32px);
-          font-weight: 800;
-          letter-spacing: -0.5px;
-          background: linear-gradient(135deg, #e6edf3 60%, #8b949e);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-        .header-left p {
-          font-family: 'Space Mono', monospace;
-          font-size: 11px;
-          color: #8b949e;
-          margin-top: 4px;
-        }
-        .live-dot {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-family: 'Space Mono', monospace;
-          font-size: 11px;
-          color: #8b949e;
-        }
-        .live-dot span {
-          width: 7px; height: 7px;
-          border-radius: 50%;
-          background: #3fb950;
-          animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.5; transform: scale(0.8); }
-        }
+        .hdr { display: flex; align-items: center; justify-content: space-between; padding: 28px 24px 20px; border-bottom: 1px solid #161b22; flex-wrap: wrap; gap: 12px; }
+        .hdr-left h1 { font-size: clamp(20px, 5vw, 28px); font-weight: 800; letter-spacing: -.5px; }
+        .hdr-left p  { font-family: 'Space Mono', monospace; font-size: 10px; color: #8b949e; margin-top: 4px; }
+        .live-pill { display: flex; align-items: center; gap: 6px; font-family: 'Space Mono', monospace; font-size: 10px; color: #3fb950; }
+        .live-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: #3fb950; animation: blink 2s infinite; }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-        /* ── Chain Tabs ── */
-        .chain-tabs {
-          display: flex;
-          gap: 8px;
-          padding: 20px 24px 0;
-          overflow-x: auto;
-          scrollbar-width: none;
-        }
-        .chain-tabs::-webkit-scrollbar { display: none; }
+        /* ── Price Cards ── */
+        .cards-row { display: flex; gap: 1px; overflow-x: auto; scrollbar-width: none; background: #161b22; border-top: 1px solid #161b22; border-bottom: 1px solid #161b22; }
+        .cards-row::-webkit-scrollbar { display: none; }
+        .price-card { flex: 1; min-width: 140px; background: #0d1117; padding: 18px 16px; cursor: pointer; transition: background .15s; position: relative; }
+        .price-card::after { content:''; position:absolute; bottom:0; left:0; right:0; height:2px; background:var(--cc); opacity:0; transition:opacity .2s; }
+        .price-card:hover { background: #111820; }
+        .price-card.active { background: #111820; }
+        .price-card.active::after { opacity:1; }
+        .pc-top { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+        .pc-icon { font-size: 20px; }
+        .pc-meta { }
+        .pc-name { font-size: 13px; font-weight: 700; color: var(--cc); line-height: 1.1; }
+        .pc-sym  { font-family: 'Space Mono', monospace; font-size: 9px; color: #8b949e; }
+        .pc-price { font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; color: #e6edf3; }
+        .pc-change { font-family: 'Space Mono', monospace; font-size: 10px; margin-top: 3px; }
+        .pc-change.up { color: #3fb950; }
+        .pc-change.dn { color: #f85149; }
+        .skeleton { width: 80px; height: 18px; background: #21262d; border-radius: 4px; animation: shimmer 1.5s infinite; }
+        @keyframes shimmer { 0%,100%{opacity:.5} 50%{opacity:1} }
 
-        .chain-tab {
-          flex-shrink: 0;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 10px 16px;
-          border-radius: 12px;
-          border: 1px solid #21262d;
-          background: transparent;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          position: relative;
-          overflow: hidden;
-        }
-        .chain-tab::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          opacity: 0;
-          transition: opacity 0.2s;
-          border-radius: 12px;
-        }
-        .chain-tab:hover { border-color: #30363d; }
-        .chain-tab.active {
-          border-color: var(--chain-color);
-          background: var(--chain-bg);
-        }
-        .chain-tab.active::before { opacity: 1; }
-        .chain-icon { font-size: 18px; line-height: 1; }
-        .chain-info { text-align: left; }
-        .chain-name {
-          font-size: 13px;
-          font-weight: 700;
-          color: #e6edf3;
-          display: block;
-          line-height: 1.2;
-        }
-        .chain-tab.active .chain-name { color: var(--chain-color); }
-        .chain-symbol {
-          font-family: 'Space Mono', monospace;
-          font-size: 10px;
-          color: #8b949e;
-          display: block;
-        }
-        .chain-mini-price {
-          font-family: 'Space Mono', monospace;
-          font-size: 11px;
-          color: #8b949e;
-          margin-left: auto;
-        }
-        .chain-tab.active .chain-mini-price { color: var(--chain-color); }
+        /* ── Chart section ── */
+        .chart-section { padding: 24px; }
+        .chart-top { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
+        .chart-hero { }
+        .chart-chain-label { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+        .chart-chain-label .icon { font-size: 26px; }
+        .chart-chain-name { font-size: 22px; font-weight: 800; color: var(--active); }
+        .chart-price { font-family: 'Space Mono', monospace; font-size: clamp(28px, 6vw, 48px); font-weight: 700; letter-spacing: -1px; color: var(--active); line-height: 1; }
+        .chart-subrow { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+        .change-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; }
+        .change-chip.up { background: #0d2a14; color: #3fb950; }
+        .change-chip.dn { background: #2a0d0d; color: #f85149; }
+        .trend-chip { font-family: 'Space Mono', monospace; font-size: 10px; color: #8b949e; }
 
-        /* ── Hero Price Card ── */
-        .hero-section {
-          padding: 24px;
-          display: grid;
-          grid-template-columns: 1fr auto;
-          gap: 20px;
-          align-items: start;
-        }
-        .hero-price {
-          font-size: clamp(36px, 8vw, 64px);
-          font-weight: 800;
-          letter-spacing: -2px;
-          line-height: 1;
-          color: var(--active-color, #e6edf3);
-          text-shadow: 0 0 40px var(--active-glow, transparent);
-          transition: color 0.3s, text-shadow 0.3s;
-        }
-        .hero-chain-label {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 8px;
-        }
-        .hero-chain-label .icon { font-size: 28px; }
-        .hero-chain-label .names {
-          display: flex;
-          flex-direction: column;
-        }
-        .hero-chain-label .chain-full {
-          font-size: 18px;
-          font-weight: 800;
-          color: var(--active-color, #e6edf3);
-        }
-        .hero-chain-label .chain-tag {
-          font-family: 'Space Mono', monospace;
-          font-size: 11px;
-          color: #8b949e;
-        }
-        .change-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          padding: 4px 10px;
-          border-radius: 20px;
-          font-family: 'Space Mono', monospace;
-          font-size: 12px;
-          font-weight: 700;
-          margin-top: 10px;
-        }
-        .change-badge.pos { background: #0d2a14; color: #3fb950; }
-        .change-badge.neg { background: #2a0d0d; color: #f85149; }
+        /* Range pills */
+        .range-row { display: flex; gap: 4px; background: #161b22; border-radius: 10px; padding: 4px; align-self: flex-start; }
+        .range-btn { padding: 5px 14px; border-radius: 7px; border: none; background: transparent; color: #8b949e; font-family: 'Space Mono', monospace; font-size: 11px; cursor: pointer; transition: all .15s; }
+        .range-btn.active { background: var(--active); color: #010409; font-weight: 700; }
 
-        /* Stats row */
-        .stats-row {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 1px;
-          margin-top: 20px;
-          background: #161b22;
-          border-radius: 12px;
-          overflow: hidden;
-        }
-        .stat-cell {
-          background: #0d1117;
-          padding: 14px 16px;
-        }
-        .stat-label {
-          font-family: 'Space Mono', monospace;
-          font-size: 10px;
-          color: #8b949e;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          margin-bottom: 4px;
-        }
-        .stat-val {
-          font-size: 14px;
-          font-weight: 700;
-          color: #e6edf3;
-        }
+        /* Chart box */
+        .chart-box { height: 260px; background: #0d1117; border: 1px solid #161b22; border-radius: 14px; padding: 16px; position: relative; overflow: hidden; }
+        .chart-loading { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#0d1117; font-family:'Space Mono',monospace; font-size:11px; color:#8b949e; border-radius:14px; }
+        .chart-empty { height:100%; display:flex; align-items:center; justify-content:center; font-family:'Space Mono',monospace; font-size:11px; color:#30363d; }
+        .chart-trend-line { position:absolute; top:0; left:0; right:0; height:2px; background: linear-gradient(90deg, transparent, var(--active), transparent); opacity:.4; }
 
-        /* ── Chart ── */
-        .chart-section {
-          padding: 0 24px;
-        }
-        .chart-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 16px;
-        }
-        .chart-title {
-          font-family: 'Space Mono', monospace;
-          font-size: 11px;
-          color: #8b949e;
-          text-transform: uppercase;
-          letter-spacing: 1.5px;
-        }
-        .range-tabs {
-          display: flex;
-          gap: 2px;
-          background: #161b22;
-          border-radius: 8px;
-          padding: 3px;
-        }
-        .range-btn {
-          padding: 4px 12px;
-          border-radius: 6px;
-          border: none;
-          background: transparent;
-          color: #8b949e;
-          font-family: 'Space Mono', monospace;
-          font-size: 11px;
-          cursor: pointer;
-          transition: all 0.15s;
-        }
-        .range-btn.active {
-          background: var(--active-color, #30363d);
-          color: #010409;
-          font-weight: 700;
-        }
-        .chart-wrap {
-          height: 220px;
-          border: 1px solid #161b22;
-          border-radius: 12px;
-          padding: 16px;
-          background: #0d1117;
-          position: relative;
-        }
-        .chart-loading {
-          position: absolute;
-          inset: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-family: 'Space Mono', monospace;
-          font-size: 11px;
-          color: #8b949e;
-          background: #0d1117;
-          border-radius: 12px;
-        }
-        .chart-empty {
-          height: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-family: 'Space Mono', monospace;
-          font-size: 11px;
-          color: #30363d;
-        }
+        /* ── Security note ── */
+        .sec-note { margin: 0 24px; padding: 12px 16px; background: #0d2a14; border: 1px solid #1a4a28; border-radius: 10px; display: flex; align-items: flex-start; gap: 10px; }
+        .sec-note .icon { font-size: 14px; flex-shrink:0; margin-top:1px; }
+        .sec-note p { font-family: 'Space Mono', monospace; font-size: 10px; color: #3fb950; line-height: 1.6; }
 
-        /* ── All Chains Grid ── */
-        .all-chains {
-          padding: 32px 24px 0;
-        }
-        .section-title {
-          font-family: 'Space Mono', monospace;
-          font-size: 10px;
-          color: #8b949e;
-          text-transform: uppercase;
-          letter-spacing: 2px;
-          margin-bottom: 14px;
-        }
-        .chain-cards {
-          display: flex;
-          flex-direction: column;
-          gap: 1px;
-          border-radius: 12px;
-          overflow: hidden;
-          border: 1px solid #161b22;
-        }
-        .chain-card {
-          display: grid;
-          grid-template-columns: auto 1fr auto;
-          align-items: center;
-          gap: 14px;
-          padding: 14px 16px;
-          background: #0d1117;
-          cursor: pointer;
-          transition: background 0.15s;
-          position: relative;
-        }
-        .chain-card::after {
-          content: '';
-          position: absolute;
-          left: 0; top: 0; bottom: 0;
-          width: 2px;
-          background: var(--cc-color);
-          opacity: 0;
-          transition: opacity 0.2s;
-        }
-        .chain-card:hover { background: #161b22; }
-        .chain-card.active::after { opacity: 1; }
-        .chain-card.active { background: #161b22; }
-        .card-icon { font-size: 22px; width: 32px; text-align: center; }
-        .card-info {}
-        .card-name {
-          font-size: 14px;
-          font-weight: 700;
-          color: #e6edf3;
-        }
-        .card-sym {
-          font-family: 'Space Mono', monospace;
-          font-size: 10px;
-          color: #8b949e;
-        }
-        .card-right { text-align: right; }
-        .card-price {
-          font-family: 'Space Mono', monospace;
-          font-size: 13px;
-          font-weight: 700;
-          color: #e6edf3;
-        }
-        .card-change {
-          font-family: 'Space Mono', monospace;
-          font-size: 11px;
-          margin-top: 2px;
-        }
-        .card-change.pos { color: #3fb950; }
-        .card-change.neg { color: #f85149; }
-        .card-skeleton {
-          width: 60px;
-          height: 14px;
-          background: #21262d;
-          border-radius: 4px;
-          animation: shimmer 1.5s infinite;
-          margin-left: auto;
-        }
-        @keyframes shimmer {
-          0% { opacity: 0.5; }
-          50% { opacity: 1; }
-          100% { opacity: 0.5; }
-        }
-
-        /* ── Error Banner ── */
-        .error-banner {
-          margin: 16px 24px;
-          padding: 12px 16px;
-          background: #2a0d0d;
-          border: 1px solid #f85149;
-          border-radius: 8px;
-          font-family: 'Space Mono', monospace;
-          font-size: 11px;
-          color: #f85149;
-        }
-
-        /* ── Divider ── */
-        .divider { height: 1px; background: #161b22; margin: 24px 0; }
+        /* ── Footer ── */
+        .footer { margin: 32px 24px 0; padding-top: 20px; border-top: 1px solid #161b22; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+        .footer p { font-family: 'Space Mono', monospace; font-size: 10px; color: #8b949e; }
+        .footer a { color: #4FC3F7; text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
       `}</style>
 
       <div
-        className="prices-page"
-        style={
-          {
-            "--active-color": activeChain.color,
-            "--active-glow": activeChain.glow,
-          } as React.CSSProperties
-        }
+        className="dash"
+        style={{
+          "--active": chain.color,
+          "--active-glow": chain.glow,
+        } as React.CSSProperties}
       >
-        {/* Header */}
-        <div className="page-header">
-          <div className="header-left">
-            <h1>Market Prices</h1>
+        {/* ── Header ── */}
+        <div className="hdr">
+          <div className="hdr-left">
+            <h1>🦋 TheWall Markets</h1>
             <p>
               {lastUpdated
-                ? `Updated ${lastUpdated.toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                  })}`
-                : "Fetching live data…"}
+                ? `Last sync ${lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
+                : "Connecting to price feeds…"}
             </p>
           </div>
-          <div className="live-dot">
-            <span />
-            LIVE
+          <div className="live-pill">
+            <span className="dot" />
+            LIVE · 30s
           </div>
         </div>
 
-        {/* Error */}
-        {error && <div className="error-banner">⚠ {error} — showing cached data</div>}
-
-        {/* Chain Tabs */}
-        <div className="chain-tabs">
-          {CHAINS.map((chain) => {
-            const p: ChainPrice | undefined = prices[chain.symbol];
-            const isActive = chain.id === activeChain.id;
+        {/* ── Price Cards ── */}
+        <div className="cards-row">
+          {CHAINS.map((c) => {
+            const p = prices[c.symbol];
+            const chg = p?.change24h ?? 0;
+            const up  = chg >= 0;
+            const isActive = c.symbol === chain.symbol;
             return (
-              <button
-                key={chain.id}
-                className={`chain-tab${isActive ? " active" : ""}`}
-                style={
-                  {
-                    "--chain-color": chain.color,
-                    "--chain-bg": `${chain.color}12`,
-                  } as React.CSSProperties
-                }
-                onClick={() => setActiveChain(chain)}
+              <div
+                key={c.symbol}
+                className={`price-card${isActive ? " active" : ""}`}
+                style={{ "--cc": c.color } as React.CSSProperties}
+                onClick={() => setActiveChain(c)}
               >
-                <span className="chain-icon">{chain.icon}</span>
-                <div className="chain-info">
-                  <span className="chain-name">{chain.name}</span>
-                  <span className="chain-symbol">{chain.symbol}</span>
+                <div className="pc-top">
+                  <span className="pc-icon">{c.icon}</span>
+                  <div className="pc-meta">
+                    <div className="pc-name">{c.name}</div>
+                    <div className="pc-sym">{c.symbol}</div>
+                  </div>
                 </div>
-                <span className="chain-mini-price">
-                  {p ? fmt(p.price) : "—"}
-                </span>
-              </button>
+                {priceLoading ? (
+                  <div className="skeleton" />
+                ) : (
+                  <>
+                    <div className="pc-price">{p ? fmt(p.price) : "—"}</div>
+                    <div className={`pc-change ${up ? "up" : "dn"}`}>
+                      {up ? "▲" : "▼"} {Math.abs(chg).toFixed(2)}%
+                    </div>
+                  </>
+                )}
+              </div>
             );
           })}
         </div>
 
-        {/* Hero Price */}
-        <div className="hero-section">
-          <div>
-            <div className="hero-chain-label">
-              <span className="icon">{activeChain.icon}</span>
-              <div className="names">
-                <span className="chain-full">{activeChain.name}</span>
-                <span className="chain-tag">{activeChain.tagline}</span>
-              </div>
-            </div>
-
-            {loading ? (
-              <div
-                style={{
-                  width: "180px",
-                  height: "52px",
-                  background: "#161b22",
-                  borderRadius: "8px",
-                  animation: "shimmer 1.5s infinite",
-                }}
-              />
-            ) : (
-              <div className="hero-price">
-                {activePriceData ? fmt(activePriceData.price) : "—"}
-              </div>
-            )}
-
-            <div
-              className={`change-badge ${isPositive ? "pos" : "neg"}`}
-            >
-              {isPositive ? "▲" : "▼"}{" "}
-              {Math.abs(priceChange).toFixed(2)}% 24h
-            </div>
-
-            {activePriceData && (
-              <div className="stats-row">
-                  <div className="stat-cell">
-                    <div className="stat-label">Symbol</div>
-                    <div className="stat-val">{activeChain.symbol}</div>
-                  </div>
-                  <div className="stat-cell">
-                    <div className="stat-label">Network</div>
-                    <div className="stat-val">{activeChain.tagline}</div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+        {/* ── Security note (replaces API key input) ── */}
+        <div className="sec-note" style={{ marginTop: "20px" }}>
+          <span className="icon">🔒</span>
+          <p>
+            Alchemy API key is never exposed client-side.
+            All price feeds route through <strong>/api/prices</strong> and{" "}
+            <strong>/api/alchemy-prices</strong> (server-side).
+          </p>
         </div>
 
-        {/* Chart */}
+        {/* ── Chart Section ── */}
         <div className="chart-section">
-          <div className="chart-header">
-            <span className="chart-title">Price History</span>
-            <div className="range-tabs">
-              {(["1D", "7D", "30D"] as const).map((r) => (
+          <div className="chart-top">
+            <div className="chart-hero">
+              <div className="chart-chain-label">
+                <span className="icon">{chain.icon}</span>
+                <span className="chart-chain-name">{chain.name}</span>
+              </div>
+              {priceLoading ? (
+                <div className="skeleton" style={{ width: "160px", height: "44px" }} />
+              ) : (
+                <div className="chart-price">
+                  {activePrice ? fmt(activePrice.price) : "—"}
+                </div>
+              )}
+              <div className="chart-subrow">
+                <span className={`change-chip ${isUp ? "up" : "dn"}`}>
+                  {isUp ? "▲" : "▼"} {Math.abs(priceChange).toFixed(2)}% 24h
+                </span>
+                <span className="trend-chip">
+                  {history.length > 1
+                    ? `${range} trend: ${trendUp ? "↑ gaining" : "↓ declining"}`
+                    : ""}
+                </span>
+              </div>
+            </div>
+
+            {/* Range selector */}
+            <div className="range-row">
+              {(Object.keys(RANGE_DAYS) as TimeRange[]).map((r) => (
                 <button
                   key={r}
                   className={`range-btn${range === r ? " active" : ""}`}
-                  style={range === r ? { background: activeChain.color } : {}}
                   onClick={() => setRange(r)}
                 >
                   {r}
@@ -730,60 +357,33 @@ export default function PricesPage() {
             </div>
           </div>
 
-          <div className="chart-wrap">
-            {histLoading ? (
-              <div className="chart-loading">Loading chart…</div>
-            ) : histPoints.length > 0 ? (
+          {/* Chart */}
+          <div className="chart-box">
+            <div className="chart-trend-line" />
+            {chartLoading ? (
+              <div className="chart-loading">Loading {chain.name} history…</div>
+            ) : history.length > 0 ? (
               <Line data={chartData} options={chartOptions} />
             ) : (
-              <div className="chart-empty">No historical data available</div>
+              <div className="chart-empty">No data for {chain.symbol} · {range}</div>
             )}
           </div>
         </div>
 
-        {/* All Chains List */}
-        <div className="all-chains">
-          <p className="section-title">All Chains</p>
-          <div className="chain-cards">
-            {CHAINS.map((chain) => {
-              const p: ChainPrice | undefined = prices[chain.symbol];
-              const change = p?.change24h ?? 0;
-              const pos = change >= 0;
-              return (
-                <div
-                  key={chain.id}
-                  className={`chain-card${
-                    chain.id === activeChain.id ? " active" : ""
-                  }`}
-                  style={{ "--cc-color": chain.color } as React.CSSProperties}
-                  onClick={() => setActiveChain(chain)}
-                >
-                  <span className="card-icon">{chain.icon}</span>
-                  <div className="card-info">
-                    <div className="card-name">{chain.name}</div>
-                    <div className="card-sym">{chain.symbol}</div>
-                  </div>
-                  <div className="card-right">
-                    {loading ? (
-                      <div className="card-skeleton" />
-                    ) : (
-                      <>
-                        <div className="card-price">
-                          {p ? fmt(p.price) : "—"}
-                        </div>
-                        <div className={`card-change ${pos ? "pos" : "neg"}`}>
-                          {pos ? "+" : ""}
-                          {change.toFixed(2)}%
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        {/* ── Footer ── */}
+        <div className="footer">
+          <p>
+            Powered by{" "}
+            <a href="https://www.alchemy.com/prices" target="_blank" rel="noreferrer">
+              Alchemy Prices API
+            </a>{" "}
+            · CEX & DEX aggregated feeds
+          </p>
+          <p>
+            {priceError ? "⚠ Price feed offline" : `${CHAINS.length} chains · auto-refreshes every 30s`}
+          </p>
         </div>
       </div>
     </>
   );
-        }
+      }
