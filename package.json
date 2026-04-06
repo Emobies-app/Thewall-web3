@@ -15,11 +15,13 @@
     "@reown/appkit": "1.6.8",
     "@reown/appkit-adapter-ethers": "1.6.8",
     "@types/qrcode": "^1.5.6",
+    "chart.js": "^4.4.0",
     "ethers": "^6.0.0",
     "next": "14.2.5",
     "otplib": "^12.0.1",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
+    "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
