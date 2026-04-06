@@ -4,6 +4,7 @@ import './globals.css'
 import { WalletProvider } from './context/wallet'
 import SWRegister from './sw-register'
 import EmowallAIChatWrapper from '@/components/EmowallAIChatWrapper'
+import EmowallAIChatWrapper from '@/components/EmowallAIChatWrapper'
 
 export const metadata: Metadata = {
   title: '⬡ THE WALL',
