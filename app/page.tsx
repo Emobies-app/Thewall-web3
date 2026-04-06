@@ -26,16 +26,16 @@ ChartJS.register(
 );
 
 // ── Chain Identity ──────────────────────────────────────────────────────────
+// symbol matches the keys returned by /api/prices  { prices: { ETH: {...} } }
 const CHAINS = [
   {
     id: "ethereum",
-    symbol: "ETH",
+    symbol: "ETH",          // ← /api/prices key
     name: "Earth",
     tagline: "The Foundation",
     color: "#4FC3F7",
     glow: "rgba(79,195,247,0.35)",
     icon: "🌍",
-    coingeckoId: "ethereum",
   },
   {
     id: "solana",
@@ -45,17 +45,15 @@ const CHAINS = [
     color: "#B39DDB",
     glow: "rgba(179,157,219,0.35)",
     icon: "🔮",
-    coingeckoId: "solana",
   },
   {
     id: "monad",
-    symbol: "MON",
+    symbol: "MON",           // placeholder — price: 0.00
     name: "Moon",
     tagline: "Rising Force",
     color: "#80DEEA",
     glow: "rgba(128,222,234,0.35)",
     icon: "🌙",
-    coingeckoId: "monad-testnet",
   },
   {
     id: "arbitrum",
@@ -65,7 +63,6 @@ const CHAINS = [
     color: "#90CAF9",
     glow: "rgba(144,202,249,0.35)",
     icon: "🪐",
-    coingeckoId: "arbitrum",
   },
   {
     id: "bitcoin",
@@ -75,19 +72,13 @@ const CHAINS = [
     color: "#FFCC80",
     glow: "rgba(255,204,128,0.35)",
     icon: "🌟",
-    coingeckoId: "bitcoin",
   },
 ];
 
 // ── Types ───────────────────────────────────────────────────────────────────
-interface PriceData {
-  [key: string]: {
-    usd: number;
-    usd_24h_change: number;
-    usd_market_cap?: number;
-    usd_24h_vol?: number;
-  };
-}
+// Matches /api/prices → { prices: { ETH: { price, change24h } } }
+interface ChainPrice { price: number; change24h: number }
+interface PriceData  { [symbol: string]: ChainPrice }
 
 interface HistoricalPoint {
   timestamp: number;
@@ -105,12 +96,7 @@ function fmt(n: number) {
   return `$${n.toFixed(6)}`;
 }
 
-function fmtBig(n: number) {
-  if (n >= 1e12) return `$${(n / 1e12).toFixed(2)}T`;
-  if (n >= 1e9) return `$${(n / 1e9).toFixed(2)}B`;
-  if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
-  return `$${n.toLocaleString()}`;
-}
+
 
 // ── Main Component ──────────────────────────────────────────────────────────
 export default function PricesPage() {
@@ -128,8 +114,9 @@ export default function PricesPage() {
     try {
       const res = await fetch("/api/prices");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setPrices(data);
+      const json = await res.json();
+      // API: { prices: { ETH: { price, change24h }, … } }
+      setPrices(json.prices ?? json);
       setLastUpdated(new Date());
       setError(null);
     } catch (e) {
@@ -144,7 +131,7 @@ export default function PricesPage() {
     setHistLoading(true);
     try {
       const res = await fetch(
-        `/api/alchemy-prices?chain=${activeChain.coingeckoId}&range=${range}`
+        `/api/alchemy-prices?chain=${activeChain.symbol}&range=${range}`
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
@@ -234,8 +221,8 @@ export default function PricesPage() {
     },
   };
 
-  const activePriceData = prices[activeChain.coingeckoId];
-  const priceChange = activePriceData?.usd_24h_change ?? 0;
+  const activePriceData: ChainPrice | undefined = prices[activeChain.symbol];
+  const priceChange = activePriceData?.change24h ?? 0;
   const isPositive = priceChange >= 0;
 
   return (
@@ -648,7 +635,7 @@ export default function PricesPage() {
         {/* Chain Tabs */}
         <div className="chain-tabs">
           {CHAINS.map((chain) => {
-            const p = prices[chain.coingeckoId];
+            const p: ChainPrice | undefined = prices[chain.symbol];
             const isActive = chain.id === activeChain.id;
             return (
               <button
@@ -668,7 +655,7 @@ export default function PricesPage() {
                   <span className="chain-symbol">{chain.symbol}</span>
                 </div>
                 <span className="chain-mini-price">
-                  {p ? fmt(p.usd) : "—"}
+                  {p ? fmt(p.price) : "—"}
                 </span>
               </button>
             );
@@ -698,7 +685,7 @@ export default function PricesPage() {
               />
             ) : (
               <div className="hero-price">
-                {activePriceData ? fmt(activePriceData.usd) : "—"}
+                {activePriceData ? fmt(activePriceData.price) : "—"}
               </div>
             )}
 
@@ -711,20 +698,13 @@ export default function PricesPage() {
 
             {activePriceData && (
               <div className="stats-row">
-                <div className="stat-cell">
-                  <div className="stat-label">Market Cap</div>
-                  <div className="stat-val">
-                    {activePriceData.usd_market_cap
-                      ? fmtBig(activePriceData.usd_market_cap)
-                      : "—"}
+                  <div className="stat-cell">
+                    <div className="stat-label">Symbol</div>
+                    <div className="stat-val">{activeChain.symbol}</div>
                   </div>
-                </div>
-                <div className="stat-cell">
-                  <div className="stat-label">24h Volume</div>
-                  <div className="stat-val">
-                    {activePriceData.usd_24h_vol
-                      ? fmtBig(activePriceData.usd_24h_vol)
-                      : "—"}
+                  <div className="stat-cell">
+                    <div className="stat-label">Network</div>
+                    <div className="stat-val">{activeChain.tagline}</div>
                   </div>
                 </div>
               </div>
@@ -766,8 +746,8 @@ export default function PricesPage() {
           <p className="section-title">All Chains</p>
           <div className="chain-cards">
             {CHAINS.map((chain) => {
-              const p = prices[chain.coingeckoId];
-              const change = p?.usd_24h_change ?? 0;
+              const p: ChainPrice | undefined = prices[chain.symbol];
+              const change = p?.change24h ?? 0;
               const pos = change >= 0;
               return (
                 <div
@@ -789,7 +769,7 @@ export default function PricesPage() {
                     ) : (
                       <>
                         <div className="card-price">
-                          {p ? fmt(p.usd) : "—"}
+                          {p ? fmt(p.price) : "—"}
                         </div>
                         <div className={`card-change ${pos ? "pos" : "neg"}`}>
                           {pos ? "+" : ""}
