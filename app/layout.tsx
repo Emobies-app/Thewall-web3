@@ -2,13 +2,8 @@ import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import './globals.css'
 import { WalletProvider } from './context/wallet'
-import dynamic from 'next/dynamic'
 import SWRegister from './sw-register'
-
-const EmowallAIChat = dynamic(
-  () => import('@/components/EmowallButterfly').then(m => m.EmowallAIChat || m.default),
-  { ssr: false }
-)
+import EmowallAIChatWrapper from '@/components/EmowallAIChatWrapper'
 
 export const metadata: Metadata = {
   title: '⬡ THE WALL',
@@ -59,7 +54,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <WalletProvider>
           <SWRegister />
           {children}
-          <EmowallAIChat />
+          <EmowallAIChatWrapper />
         </WalletProvider>
       </body>
     </html>
