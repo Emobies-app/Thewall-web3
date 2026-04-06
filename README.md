@@ -28,15 +28,14 @@ Built by **Thewin** (Dwin 05) - India → Dubai                                 
 
 ---
 
-## ⛓️ 5 Chains
+## ⛓️ 6 Chains
 
-| Name | Symbol | Chain |
-|------|--------|-------|
-| 🌍 Earth | ETH | Ethereum |
-| 🌟 Soul | SOL | Solana |
-| 🌙 Moon | MON | Monad |
-| 🪐 Orbit | ARB | Arbitrum |
-| ₿ Birth | BTC | Bitcoin |
+| 🌍 Earth  | ETH  | Ethereum  |
+| 🌟 Soul   | SOL  | Solana    |
+| 🌙 Moon   | MON  | Monad     |
+| 🪐 Orbit  | ARB  | Arbitrum  |
+| ₿ Birth   | BTC  | Bitcoin   |
+| 🔵 Base   | BASE | Base      |
 
 ---
 
