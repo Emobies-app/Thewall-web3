@@ -44,6 +44,8 @@ export async function POST(req: NextRequest) {
 
     const data = await res.json()
 
+    console.log('Key length:', key.length, 'Status:', res.status)
+
     if (data.error) {
       console.error('Grok error:', data.error)
       return NextResponse.json({ reply: '🦋 ' + (data.error.message || 'Try again!') })
