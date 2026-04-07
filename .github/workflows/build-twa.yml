@@ -10,15 +10,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Setup Java
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Node
+      - name: Setup Node.js 18
         uses: actions/setup-node@v4
         with:
           node-version: '18'
@@ -29,14 +30,14 @@ jobs:
       - name: Install Bubblewrap
         run: npm install -g @bubblewrap/cli
 
-      - name: Init Bubblewrap (FORCED NON-INTERACTIVE)
+      - name: Init Bubblewrap (NON-INTERACTIVE)
         run: |
           bubblewrap init \
             --manifest https://thewall.e-mobies.com/manifest.json \
             --directory twa-project \
             --skipPwaValidation \
-            --useLocalJdk \
-            --jdkPath $JAVA_HOME
+            --skipJdkInstall \
+            --jdkPath "$JAVA_HOME"
 
       - name: Create Keystore
         env:
@@ -44,27 +45,4 @@ jobs:
         run: |
           keytool -genkey -v \
             -keystore twa-project/android.keystore \
-            -alias thewall \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -storepass "$KEYSTORE_PASSWORD" \
-            -keypass "$KEYSTORE_PASSWORD" \
-            -dname "CN=Divin, OU=DwinUniverse, O=Dwin, L=Dubai, S=Dubai, C=AE"
-
-      - name: Build APK & AAB
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        run: |
-          cd twa-project
-          bubblewrap build \
-            --signingKeyPassword "$KEYSTORE_PASSWORD" \
-            --signingKeyStorePassword "$KEYSTORE_PASSWORD"
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: thewall-apk
-          path: |
-            twa-project/app-release-signed.apk
-            twa-project/app-release-signed.aab
+            -alias thewall
