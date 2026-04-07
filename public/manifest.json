@@ -1,22 +1,42 @@
 {
   "name": "TheWall Web3 Wallet",
   "short_name": "TheWall",
-  "description": "5-Chain Web3 Wallet — ETH · SOL · BTC · ARB · MON · Gasless · No Seed Phrase",
-  "id": "TheWall",
+  "description": "5-Chain Gasless Web3 Wallet • No Seed Phrase • Emowall AI Guardian",
+  "id": "com.emobies.thewall",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#060c1a",
-  "theme_color": "#627eea",
+  "background_color": "#07080B",
+  "theme_color": "#FF5500",
   "lang": "en",
   "categories": ["finance", "utilities"],
   "prefer_related_applications": false,
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ],
   "screenshots": [
     {
@@ -36,16 +56,16 @@
   ],
   "shortcuts": [
     {
-      "name": "Send",
+      "name": "Send Crypto",
       "short_name": "Send",
-      "description": "Send crypto instantly",
+      "description": "Send instantly gasless",
       "url": "/?action=send",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Markets",
       "short_name": "Markets",
-      "description": "Live crypto prices",
+      "description": "Live charts & prices",
       "url": "/?tab=markets",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
