@@ -8,16 +8,16 @@ import EmowallAIChatWrapper from '@/components/EmowallAIChatWrapper'
 
 export const metadata: Metadata = {
   title: '⬡ THE WALL',
-  description: '5-Chain Web3 Wallet — ETH · SOL · BTC · ARB · MON · Gasless · No Seed Phrase',
+  description: '5-Chain Gasless Web3 Wallet — No Seed Phrase • Emowall AI Guardian',
   manifest: '/manifest.json',
-  themeColor: '#627eea',
+  themeColor: '#FF5500',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'TheWall',
   },
   icons: {
-    icon: '/logo.svg',
+    icon: '/icon-192.png',
     apple: '/icon-192.png',
   },
   viewport: {
@@ -31,14 +31,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
-        /manifest.json
-        <meta name="theme-color" content="#030508" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#FF5500" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="TheWall" />
       </head>
-      <body>
+      <body className="bg-[#07080B]">
         <WalletProvider>
           <SWRegister />
           {children}
