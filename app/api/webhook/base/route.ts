@@ -3,111 +3,98 @@ import { createHmac } from 'crypto';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const preferredRegion = 'auto';
 
-// ── Alchemy Signature Verify ─────────────────────────────────────────────────
+// ── Alchemy Signature Verification ─────────────────────────────────────
 function verifyAlchemySignature(rawBody: string, signature: string): boolean {
   const secret = process.env.ALCHEMY_WEBHOOK_SECRET || '';
+  if (!secret) {
+    console.warn('⚠️ ALCHEMY_WEBHOOK_SECRET is not set');
+    return false;
+  }
   const hmac = createHmac('sha256', secret);
   hmac.update(rawBody);
-  const digest = hmac.digest('hex');
-  return digest === signature;
+  return hmac.digest('hex') === signature;
 }
 
-// ── Types ────────────────────────────────────────────────────────────────────
-interface BaseActivity {
-  fromAddress: string;
-  toAddress: string;
-  value: string;
-  asset: string;
-  hash: string;
-  blockNum: string;
-  category: 'external' | 'internal' | 'erc20' | 'erc721' | 'erc1155';
-}
-
-interface AlchemyWebhookPayload {
-  webhookId: string;
-  id: string;
-  createdAt: string;
-  type: string;
-  event: {
-    network: string;
-    activity: BaseActivity[];
-  };
-}
-
+// ── Main Webhook Handler ───────────────────────────────────────────────
 export async function POST(req: Request) {
   try {
     const rawBody = await req.text();
-
-    // ── Signature verification ───────────────────────────────────────────────
     const signature = req.headers.get('x-alchemy-signature') || '';
+
+    // Verify signature
     if (process.env.ALCHEMY_WEBHOOK_SECRET && !verifyAlchemySignature(rawBody, signature)) {
-      console.warn('⚠️ Invalid Alchemy signature — rejected');
+      console.warn('🚫 Invalid Alchemy signature — request rejected');
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
-    const payload: AlchemyWebhookPayload = JSON.parse(rawBody);
+    const payload = JSON.parse(rawBody);
     const { type, event } = payload;
 
-    console.log(`🔵 Base Webhook [${type}] — Network: ${event?.network}`);
+    console.log(`🔵 [Base Webhook] ${type} → Network: ${event?.network || 'unknown'}`);
 
-    // ── Handle Address Activity ──────────────────────────────────────────────
+    // ── Address Activity (Most Important) ───────────────────────────────
     if (type === 'ADDRESS_ACTIVITY') {
-      const activities = event.activity || [];
+      const activities = event?.activity || [];
 
       for (const activity of activities) {
-        const { fromAddress, toAddress, value, asset, hash, category } = activity;
+        const {
+          fromAddress,
+          toAddress,
+          value,
+          asset,
+          hash,
+          category,
+        } = activity;
+
+        const TREASURY = process.env.TREASURY_WALLET?.toLowerCase();
+        const MAIN = process.env.MAIN_WALLET?.toLowerCase();
+
+        const isIncoming = [TREASURY, MAIN].includes(toAddress?.toLowerCase());
+        const isOutgoing = [TREASURY, MAIN].includes(fromAddress?.toLowerCase());
 
         console.log(`
-  📦 Base Activity
-  ├ Category : ${category}
-  ├ Asset    : ${asset}
-  ├ Value    : ${value}
-  ├ From     : ${fromAddress}
-  ├ To       : ${toAddress}
-  └ Tx Hash  : ${hash}
+🦋 Base Activity Detected
+├─ Type     : ${category}
+├─ Asset    : ${asset}
+├─ Amount   : ${value}
+├─ From     : ${fromAddress}
+├─ To       : ${toAddress}
+├─ Incoming : ${isIncoming}
+├─ Outgoing : ${isOutgoing}
+└─ Tx Hash  : ${hash}
         `);
 
-        // WALLET: treasury or main
-        const TREASURY = process.env.TREASURY_WALLET?.toLowerCase();
-        const MAIN     = process.env.MAIN_WALLET?.toLowerCase();
-
-        const isIncoming =
-          toAddress?.toLowerCase() === TREASURY ||
-          toAddress?.toLowerCase() === MAIN;
-
-        const isOutgoing =
-          fromAddress?.toLowerCase() === TREASURY ||
-          fromAddress?.toLowerCase() === MAIN;
-
+        // TODO: Add push notification or real-time update here later
         if (isIncoming) {
-          console.log(`✅ Incoming ${asset}: ${value} → TheWall wallet`);
-          // TODO: trigger push notification / update UI
+          console.log(`✅ Incoming funds on Base → TheWall wallet`);
         }
-
         if (isOutgoing) {
-          console.log(`📤 Outgoing ${asset}: ${value} from TheWall wallet`);
+          console.log(`📤 Outgoing transaction from TheWall wallet`);
         }
       }
     }
 
-    // ── Handle NFT Activity ──────────────────────────────────────────────────
+    // ── NFT Activity ───────────────────────────────────────────────────
     if (type === 'NFT_ACTIVITY') {
-      console.log('🖼️ NFT activity on Base');
+      console.log('🖼️ NFT activity detected on Base chain');
     }
 
-    // ── Handle Mined Transaction ─────────────────────────────────────────────
+    // ── Mined Transaction ──────────────────────────────────────────────
     if (type === 'MINED_TRANSACTION') {
-      console.log(`⛏️ Transaction mined on Base`);
+      console.log('⛏️ Transaction successfully mined on Base');
     }
 
-    return NextResponse.json({ success: true, chain: 'base' });
+    return NextResponse.json({ 
+      success: true, 
+      chain: 'base',
+      message: 'Webhook processed successfully' 
+    });
 
-  } catch (error) {
-    console.error('❌ Base Webhook error:', error);
+  } catch (error: any) {
+    console.error('❌ Base Webhook Error:', error.message);
     return NextResponse.json(
-      { error: 'Webhook processing failed' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
