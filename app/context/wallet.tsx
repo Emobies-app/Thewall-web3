@@ -11,7 +11,7 @@ const ethersAdapter = new EthersAdapter()
 
 if (typeof window !== 'undefined' && projectId) {
   createAppKit({
-    adapters: [ethersAdapter as any],
+    adapters: [EthersAdapter as any],
     networks: [mainnet, arbitrum],
     projectId,
     metadata: {
