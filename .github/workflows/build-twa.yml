@@ -30,15 +30,18 @@ jobs:
       - name: Install Bubblewrap
         run: npm install -g @bubblewrap/cli
 
-      - name: Init Bubblewrap (NO PROMPTS – FINAL FIX)
+      - name: Init Bubblewrap (Non-interactive)
         run: |
           bubblewrap init \
             --manifest https://thewall.e-mobies.com/manifest.json \
             --directory twa-project \
-            --skipPwaValidation \
-            --skipJdkInstall \
-            --jdkPath "$JAVA_HOME" \
-            --noPrompt
+            --name "TheWall" \
+            --launcher-name "TheWall" \
+            --display-mode standalone \
+            --theme-color "#FF5500" \
+            --background-color "#07080B" \
+            --icon-url https://thewall.e-mobies.com/icon-512.png \
+            --overwrite
 
       - name: Create Keystore
         env:
