@@ -7,28 +7,34 @@ import { useEffect, useState } from 'react'
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || ''
 
-const ethersAdapter = new EthersAdapter()
+let appkitInitialized = false
 
-if (typeof window !== 'undefined' && projectId) {
-  createAppKit({
-    adapters: [EthersAdapter as any],
-    networks: [mainnet, arbitrum],
-    projectId,
-    metadata: {
-      name: 'TheWall',
-      description: 'Web3 Wallet · 5 Chains · Gasless',
-      url: 'https://thewall.e-mobies.com',
-      icons: ['https://thewall.e-mobies.com/favicon.ico'],
-    },
-    features: {
-      analytics: true,
-    },
-    themeMode: 'dark',
-    themeVariables: {
-      '--w3m-accent': '#00e5ff',
-      '--w3m-border-radius-master': '8px',
-    },
-  })
+if (typeof window !== 'undefined' && projectId && !appkitInitialized) {
+  try {
+    const ethersAdapter = new EthersAdapter()
+    createAppKit({
+      adapters: [ethersAdapter],
+      networks: [mainnet, arbitrum],
+      projectId,
+      metadata: {
+        name: 'TheWall',
+        description: 'Web3 Wallet · 5 Chains · Gasless',
+        url: 'https://thewall.e-mobies.com',
+        icons: ['https://thewall.e-mobies.com/icon-192.png'],
+      },
+      features: {
+        analytics: false,
+      },
+      themeMode: 'dark',
+      themeVariables: {
+        '--w3m-accent': '#00e5ff',
+        '--w3m-border-radius-master': '8px',
+      },
+    })
+    appkitInitialized = true
+  } catch (e) {
+    console.error('AppKit init error:', e)
+  }
 }
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
