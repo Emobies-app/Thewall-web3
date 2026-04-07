@@ -8,6 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -28,13 +29,14 @@ jobs:
       - name: Install Bubblewrap
         run: npm install -g @bubblewrap/cli
 
-      - name: Init Bubblewrap (non-interactive)
+      - name: Init Bubblewrap (FORCED NON-INTERACTIVE)
         run: |
           bubblewrap init \
             --manifest https://thewall.e-mobies.com/manifest.json \
             --directory twa-project \
             --skipPwaValidation \
-            --jdkPath $(which java | xargs dirname | xargs dirname)
+            --useLocalJdk \
+            --jdkPath $JAVA_HOME
 
       - name: Create Keystore
         env:
@@ -50,7 +52,7 @@ jobs:
             -keypass "$KEYSTORE_PASSWORD" \
             -dname "CN=Divin, OU=DwinUniverse, O=Dwin, L=Dubai, S=Dubai, C=AE"
 
-      - name: Build APK
+      - name: Build APK & AAB
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
