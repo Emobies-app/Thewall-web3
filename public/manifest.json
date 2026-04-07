@@ -2,7 +2,7 @@
   "name": "TheWall Web3 Wallet",
   "short_name": "TheWall",
   "description": "5-Chain Web3 Wallet — ETH · SOL · BTC · ARB · MON · Gasless · No Seed Phrase",
-  "id": "/",
+  "id": "TheWall",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
