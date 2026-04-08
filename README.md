@@ -119,6 +119,7 @@ Ask about swaps, chains, gas, wallets — available 24/7.
 **Thewin** (Emobies05)  
 India 🇮🇳→ Dubai 🇦🇪 · Self-taught · Built on phone using Termux + Acode  
 [github.com/Emobies-app](https://github.com/Emobies-app)
+https://emobies05.github.io/public-/thewall.html
 
 ---
 
