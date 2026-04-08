@@ -1,126 +1,83 @@
-# ⬡ THE WALL — Web3 Wallet
+# ⬡ THE WALL — Invisible Fortress for Digital Assets
 
-> **Protect your invisible valuable Currencies.**
-> *Web3 · 5 Chains · Gasless · No Seed Phrase*
+![TheWall Hero](https://raw.githubusercontent.com/Emobies-app/Thewall-web3/main/public/TheWall-Hero.png)
 
-Built by **Thewin** (Dwin 05) - India → Dubai                                         🇮🇳🇦🇪
+**The world's most beautiful gasless Web3 wallet.**  
+No seed phrase. No gas fees. No complexity.  
+Just pure freedom across 6 chains with Emowall AI guarding every move.
 
----
-
-## 🌍 Live
-
-**[thewall.e-mobies.com]**
-
-(https://thewall.e-mobies.com)
+**[thewall.e-mobies.com](https://thewall.e-mobies.com)**
 
 ---
 
-## ⚡ Features
+### 🦋 Why TheWall Feels Different
 
-- 🔗 **WalletConnect** — 530+ wallets (MetaMask, Phantom, Google)
-- ⚡ **Gasless** — Powered by Alchemy Gas Manager
-- 🔐 **No Seed Phrase** — Smart wallet via email/biometric
-- 📊 **Charts** — CoinGecko candlestick (1D/7D/1M/3M/1Y)
-- 📰 **News** — CoinDesk live RSS
-- 🔔 **Alerts** — Browser price notifications
-- 🌐 **DApp Browser** — Uniswap, OpenSea, Aave, 1inch
-- 🦋 **Emowall AI Web3** — Claude-powered AI assistant
-- 🔄 **Real Swap** — UniSwap V3 integration
-- ❄️ **Freeze Wallet** — Emergency PIN lock
+Most wallets feel like tools.  
+**TheWall feels like home.**
 
----
-
-## ⛓️ 6 Chains
-
-| 🌍 Earth  | ETH  | Ethereum  |
-| 🌟 Soul   | SOL  | Solana    |
-| 🌙 Moon   | MON  | Monad     |
-| 🪐 Orbit  | ARB  | Arbitrum  |
-| ₿  Birth  | BTC  | Bitcoin   |
-| 🔵 Base   | BASE | Base      |
+- Zero seed phrase (email + biometric login)
+- 100% gasless transactions on all chains
+- Emowall AI — your personal butterfly guardian
+- Real-time charts, news, and price alerts
+- Emergency freeze button with one tap
+- Built for real users, not just crypto natives
 
 ---
 
-## 🛠️ Tech Stack
+### ⛓️ 6 Chains. One Beautiful Dashboard
 
-```
-Next.js 14       — Framework
-Alchemy          — Blockchain RPC + Gas Manager
-WalletConnect    — Wallet integration (Reown AppKit)
-CoinGecko        — Price + Charts
-CoinDesk RSS     — News
-Anthropic Claude — Emowall AI Web3
-NileDB           — Database (Postgres)
-Linear           — Project management
-Apollo GraphQL   — API layer
-Vercel           — Deployment
-```
+| Chain       | Symbol | Name          | Status     |
+|-------------|--------|---------------|------------|
+| 🌍 Earth    | ETH    | Ethereum      | Live       |
+| 🌟 Soul     | SOL    | Solana        | Live       |
+| 🌙 Moon     | MON    | Monad         | Live       |
+| 🪐 Orbit    | ARB    | Arbitrum      | Live       |
+| ₿ Birth     | BTC    | Bitcoin       | Live       |
+| 🔵 Base     | BASE   | Base          | Live       |
 
 ---
 
-## 🚀 Deploy
+### ✨ Core Features
+
+- **🔐 Zero Seed Phrase** — Login with email + Google Auth + Biometric
+- **⚡ 100% Gasless** — Powered by Alchemy Gas Manager
+- **🦋 Emowall AI** — Your 24/7 intelligent guardian (Claude-powered)
+- **📊 Live Charts** — CoinGecko candlesticks + price alerts
+- **🔄 Real Swaps** — UniSwap V3 integration
+- **🌐 DApp Browser** — Uniswap, OpenSea, Aave, Raydium & more
+- **❄️ Freeze Wallet** — One-tap emergency lock
+- **🛡️ Enterprise Security** — CodeQL, Snyk, Semgrep + Alchemy monitoring
+
+---
+
+### 📸 Wallet Screenshots
+
+![TheWall Dashboard](https://raw.githubusercontent.com/Emobies-app/Thewall-web3/main/public/screenshot1.png)
+*Beautiful multi-chain dashboard with Emowall AI butterfly*
+
+![TheWall Markets](https://raw.githubusercontent.com/Emobies-app/Thewall-web3/main/public/screenshot2.png)
+*Live charts and price tracking*
+
+![TheWall AI Chat](https://raw.githubusercontent.com/Emobies-app/Thewall-web3/main/public/TheWall-AI.png)
+*Emowall AI — Your silent guardian*
+
+---
+
+### 🛠️ Tech Stack
+
+- **Frontend**: Next.js 14 + TypeScript + Tailwind
+- **Wallet**: Reown (WalletConnect) + Ethers Adapter
+- **Blockchain**: Alchemy (RPC + Gas Manager) + Helius (Solana)
+- **AI**: Claude (Anthropic) via Emowall AI
+- **Charts**: CoinGecko
+- **Deployment**: Vercel
+
+---
+
+### 🚀 Quick Deploy
 
 ```bash
-# Clone
-git clone https://github.com/Emobies-app/Thewall-web3
-
-# Install
+git clone https://github.com/Emobies-app/Thewall-web3.git
+cd Thewall-web3
 npm install
-
-# Environment variables
-ALCHEMY_API_KEY=
-ALCHEMY_GAS_POLICY_ID=
-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=
-HELIUS_API_KEY=
-ETHERSCAN_API_KEY=
-WALL_CLOUDE_AI=
-NILEDB_POSTGRES_URL=
-
-# Run
 npm run dev
-```
-
----
-
-## 🔐 Security
-
-- CodeQL Advanced scanning
-- Snyk vulnerability detection
-- Semgrep static analysis
-- PIN-based wallet freeze
-- Biometric 2FA support
-
----
-
-## 🦋 Emowall AI Web3
-
-AI-powered assistant built with Claude (Anthropic).  
-Ask about swaps, chains, gas, wallets — available 24/7.
-
----
-
-## 📱 Part of Dwin Universe
-
-| App | Description |
-|-----|-------------|
-| 📱 Emobies | Mobile repair platform |
-| 🦋 Emowall AI | Multi-gen AI safety |
-| 🧱 TheWall | Web3 wallet (this) |
-| 🛍️ Eshoppee | Local marketplace |
-| 🎂 Ecakey | Home bakers network |
-| 🚗 Ddrive | Driving confidence |
-| 🌿 Ddrink | Natural drinks |
-| 🎬 Dott | Watch together |
-
----
-
-## 👤 Developer
-
-**Thewin** (Emobies05)  
-India 🇮🇳→ Dubai 🇦🇪 · Self-taught · Built on phone using Termux + Acode  
-[github.com/Emobies-app](https://github.com/Emobies-app)
-https://emobies05.github.io/public-/thewall.html
-
----
-
-*"Follow the flow" ·🦋*
