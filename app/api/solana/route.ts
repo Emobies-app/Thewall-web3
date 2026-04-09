@@ -1,15 +1,22 @@
-// app/context/wallet.tsx  (or wherever you configure createAppKit)
+'use client'
 
 import { createAppKit } from '@reown/appkit/react'
 import { mainnet, arbitrum, solana } from '@reown/appkit/networks'
 import { EthersAdapter } from '@reown/appkit-adapter-ethers'
 import { SolanaAdapter } from '@reown/appkit-adapter-solana'
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets'
+import { Connection } from '@solana/web3.js'
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || ''
 
-// Solana Adapter (Recommended for TheWall)
+// Solana Connection using Alchemy (TheWall Moon)
+const solanaConnection = new Connection(
+  "https://solana-mainnet.g.alchemy.com/v2/VhwTiEp2WnHh_PNE4lOw_", 
+  "confirmed"
+)
+
 const solanaAdapter = new SolanaAdapter({
+  connection: solanaConnection,
   wallets: [
     new PhantomWalletAdapter(),
     new SolflareWalletAdapter(),
@@ -19,8 +26,8 @@ const solanaAdapter = new SolanaAdapter({
 if (typeof window !== 'undefined' && projectId) {
   createAppKit({
     adapters: [
-      new EthersAdapter(),           // For Ethereum, Arbitrum, etc.
-      solanaAdapter,                 // For Solana (Soul chain)
+      new EthersAdapter(),        // Ethereum, Arbitrum, Base etc.
+      solanaAdapter,              // ← Solana (Soul chain)
     ],
     networks: [mainnet, arbitrum, solana],
     projectId,
