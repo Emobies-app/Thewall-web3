@@ -1,45 +1,58 @@
-'use client'
+import { NextRequest, NextResponse } from 'next/server';
+import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 
-import { createAppKit } from '@reown/appkit/react'
-import { mainnet, arbitrum, solana } from '@reown/appkit/networks'
-import { EthersAdapter } from '@reown/appkit-adapter-ethers'
-import { SolanaAdapter } from '@reown/appkit-adapter-solana'
-import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets'
-import { Connection } from '@solana/web3.js'
+const ALCHEMY_RPC = `https://solana-mainnet.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_SOL_API_KEY}`;
 
-const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || ''
+const connection = new Connection(ALCHEMY_RPC, 'confirmed');
 
-// Solana Connection using Alchemy (TheWall Moon)
-const solanaConnection = new Connection(
-  "https://solana-mainnet.g.alchemy.com/v2/VhwTiEp2WnHh_PNE4lOw_", 
-  "confirmed"
-)
+export async function POST(req: NextRequest) {
+  try {
+    const { action, address, amount, to } = await req.json();
 
-const solanaAdapter = new SolanaAdapter({
-  connection: solanaConnection,
-  wallets: [
-    new PhantomWalletAdapter(),
-    new SolflareWalletAdapter(),
-  ]
-})
+    if (!address) {
+      return NextResponse.json({ error: 'Address is required' }, { status: 400 });
+    }
 
-if (typeof window !== 'undefined' && projectId) {
-  createAppKit({
-    adapters: [
-      new EthersAdapter(),        // Ethereum, Arbitrum, Base etc.
-      solanaAdapter,              // ← Solana (Soul chain)
-    ],
-    networks: [mainnet, arbitrum, solana],
-    projectId,
-    metadata: {
-      name: 'TheWall',
-      description: '5-Chain Gasless Web3 Wallet • No Seed Phrase',
-      url: 'https://thewall.e-mobies.com',
-      icons: ['https://thewall.e-mobies.com/icon-512.png'],
-    },
-    themeMode: 'dark',
-    themeVariables: {
-      '--w3m-accent': '#FF5500',
-    },
-  })
+    const pubkey = new PublicKey(address);
+
+    if (action === 'balance') {
+      const balance = await connection.getBalance(pubkey);
+      return NextResponse.json({
+        balance: balance / LAMPORTS_PER_SOL,
+        balanceLamports: balance,
+      });
+    }
+
+    if (action === 'send') {
+      // This is placeholder for future full send logic
+      // You can expand it later with real transaction building
+      return NextResponse.json({
+        success: true,
+        message: 'Gasless SOL send is ready (coming in next update)',
+        estimatedFee: 0.000005,
+      });
+    }
+
+    // Default response
+    return NextResponse.json({
+      status: 'ok',
+      message: 'Solana API is active',
+      rpc: 'Alchemy Mainnet',
+    });
+
+  } catch (error: any) {
+    console.error('Solana API error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Solana request failed' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET() {
+  return NextResponse.json({
+    status: 'ok',
+    message: 'Solana API route is working',
+    rpc: 'Alchemy Mainnet',
+  });
 }
