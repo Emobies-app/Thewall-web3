@@ -11,9 +11,12 @@ import { useEffect, useState } from 'react'
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || ''
 const alchemyApiKey = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY || ''
 
-// Solana Connection using TheWall Moon app
+// Your Gas Policy ID (TheWall Moon)
+const GAS_POLICY_ID = '3678655e-9b0f-475c-b08f-889c8798730c'
+
+// Solana Connection
 const solanaConnection = new Connection(
-  `https://solana-mainnet.g.alchemy.com/v2/${Z4fvZunIg7_ufb1Omresj}`,
+  `https://solana-mainnet.g.alchemy.com/v2/${alchemyApiKey}`,
   "confirmed"
 )
 
@@ -28,8 +31,8 @@ const solanaAdapter = new SolanaAdapter({
 if (typeof window !== 'undefined' && projectId && alchemyApiKey) {
   createAppKit({
     adapters: [
-      new EthersAdapter(),        // Ethereum, Arbitrum, Base, etc.
-      solanaAdapter,              // Solana (Soul chain)
+      new EthersAdapter(),           // Ethereum, Arbitrum, Base, etc.
+      solanaAdapter,                 // Solana (Soul chain)
     ],
     networks: [mainnet, arbitrum, solana],
     projectId,
@@ -43,6 +46,13 @@ if (typeof window !== 'undefined' && projectId && alchemyApiKey) {
     themeVariables: {
       '--w3m-accent': '#FF5500',
     },
+    // Gas Manager integration (makes all transactions gasless)
+    features: {
+      gasless: {
+        enabled: true,
+        policyId: GAS_POLICY_ID,
+      }
+    }
   })
 }
 
