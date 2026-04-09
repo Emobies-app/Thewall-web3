@@ -16,7 +16,7 @@ const GAS_POLICY_ID = '3678655e-9b0f-475c-b08f-889c8798730c'
 
 // Solana Connection
 const solanaConnection = new Connection(
-  `https://solana-mainnet.g.alchemy.com/v2/${alchemyApiKey}`,
+  `https://solana-mainnet.g.alchemy.com/v2/${Z4fvZunIg7_ufb1Omresj}`,
   "confirmed"
 )
 
