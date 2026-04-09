@@ -228,7 +228,7 @@ export default function AlchemyPricesDashboard() {
             )}
             {error && <div className="text-red-600 text-center py-12 font-medium">{error}</div>}
             {!loading && !error && historicalData.length > 0 && (
-              <Line data={chartData} options={chartOptions} />
+              <Line data={chartData} options={chartOptions as any} />
             )}
             {!loading && !error && historicalData.length === 0 && (
               <div className="text-center py-12 text-gray-500">No historical data available for this period</div>
