@@ -282,7 +282,7 @@ export default function DashboardPage() {
                 key={c.symbol}
                 className={`price-card${isActive ? " active" : ""}`}
                 style={{ "--cc": c.color } as React.CSSProperties}
-                onClick={() => setActiveChain(c)}
+                onClick={() => setActiveChain(c as any)}
               >
                 <div className="pc-top">
                   <span className="pc-icon">{c.icon}</span>
