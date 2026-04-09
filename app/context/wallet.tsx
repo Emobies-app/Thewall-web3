@@ -8,16 +8,18 @@ import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adap
 import { Connection } from '@solana/web3.js'
 import { useEffect, useState } from 'react'
 
+// ── Environment variables (from .env.local) ─────────────────────
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || ''
-const alchemyApiKey = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY || ''
+const alchemyApiKey = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY || ''           // your main thewllmoon key
+const alchemySolKey = process.env.NEXT_PUBLIC_ALCHEMY_SOL_API_KEY || ''      // your solana.thewmoon key
 
-// Your Gas Policy ID (TheWall Moon)
+// Your Gas Policy ID (TheWall Moon) - you created this
 const GAS_POLICY_ID = '3678655e-9b0f-475c-b08f-889c8798730c'
 
-// Solana Connection
+// Solana Connection (using your dedicated Solana key)
 const solanaConnection = new Connection(
-  `https://solana-mainnet.g.alchemy.com/v2/${Z4fvZunIg7_ufb1Omresj}`,
-  "confirmed"
+  `https://solana-mainnet.g.alchemy.com/v2/${alchemySolKey}`,
+  'confirmed'
 )
 
 const solanaAdapter = new SolanaAdapter({
@@ -25,15 +27,12 @@ const solanaAdapter = new SolanaAdapter({
   wallets: [
     new PhantomWalletAdapter(),
     new SolflareWalletAdapter(),
-  ]
+  ],
 })
 
-if (typeof window !== 'undefined' && projectId && alchemyApiKey) {
+if (typeof window !== 'undefined' && projectId && alchemyApiKey && alchemySolKey) {
   createAppKit({
-    adapters: [
-      new EthersAdapter(),           // Ethereum, Arbitrum, Base, etc.
-      solanaAdapter,                 // Solana (Soul chain)
-    ],
+    adapters: [new EthersAdapter(), solanaAdapter],
     networks: [mainnet, arbitrum, solana],
     projectId,
     metadata: {
@@ -46,13 +45,6 @@ if (typeof window !== 'undefined' && projectId && alchemyApiKey) {
     themeVariables: {
       '--w3m-accent': '#FF5500',
     },
-    // Gas Manager integration (makes all transactions gasless)
-    features: {
-      gasless: {
-        enabled: true,
-        policyId: GAS_POLICY_ID,
-      }
-    }
   })
 }
 
