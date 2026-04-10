@@ -31,7 +31,8 @@
     "typescript": "^5.4.5"
   },
   "overrides": {
-    "porto": "^0.1.0"
+    "porto": "^0.1.0",
+    "axios": "^1.15.0"
   },
   "keywords": [
     "web3",
