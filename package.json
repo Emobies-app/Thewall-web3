@@ -32,7 +32,10 @@
   },
   "overrides": {
     "porto": "^0.1.0",
-    "axios": "^1.15.0"
+    "axios": "^1.15.0",
+    "@coinbase/cdp-sdk": {
+      "axios": "^1.15.0"
+    }
   },
   "keywords": [
     "web3",
