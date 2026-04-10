@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     const userText = lastMessage?.parts?.[0]?.text || lastMessage?.text || '';
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash-latest",
+      model: "gemini-1.5-flash-8b",
       systemInstruction: systemPrompt,
     });
 
