@@ -78,7 +78,7 @@ export default function EmowallButterfly() {
     {role:'ai', text:'🦋 Hi! I\'m watching over your wallet. Ask me anything!'}
   ])
   const [input, setInput] = useState('')
-  const chatHistory = useRef<{role:string;parts:{text:string}[]}[]>([])
+  const chatHistory = useRef<{role:string;content:string}[]>([])
 
   const W = () => window.innerWidth  - 165
   const H = () => window.innerHeight - 155
@@ -143,7 +143,6 @@ export default function EmowallButterfly() {
     wpRef.current=getWaypoints(W(),H()); wpIdx.current=0
   }
 
-  // Drag butterfly
   const bfDown=useRef(false), bfOX=useRef(0), bfOY=useRef(0)
   const tapMoved=useRef(false), tapStart=useRef(0), holdTimer=useRef<any>(null)
 
@@ -178,7 +177,6 @@ export default function EmowallButterfly() {
     }
   }
 
-  // Drag chat
   const chatDown=useRef(false), chatOX=useRef(0), chatOY=useRef(0)
   function onChatDown(e: React.PointerEvent) {
     if ((e.target as HTMLElement).closest('button')) return
@@ -196,31 +194,32 @@ export default function EmowallButterfly() {
   }
   function onChatUp() { chatDown.current=false }
 
-  // Gemini
+  // FIXED: correct format for /api/ai
   async function sendMsg() {
     const val=input.trim(); if (!val) return
     setInput('')
     setMsgs(p=>[...p,{role:'user',text:val}])
-    chatHistory.current.push({role:'user',parts:[{text:val}]})
     setMsgs(p=>[...p,{role:'ai',text:'🦋 thinking...'}])
     try {
       const res=await fetch('/api/ai',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({messages:chatHistory.current})
+        body:JSON.stringify({
+          message: val,
+          history: chatHistory.current
+        })
       })
       const data=await res.json()
       const reply=data?.reply||'🦋 Ask me about your wallet!'
-      chatHistory.current.push({role:'model',parts:[{text:reply}]})
+      chatHistory.current.push({role:'user',content:val})
+      chatHistory.current.push({role:'assistant',content:reply})
       setMsgs(p=>[...p.slice(0,-1),{role:'ai',text:reply}])
     } catch {
       setMsgs(p=>[...p.slice(0,-1),{role:'ai',text:'🦋 Ask me about ETH, SOL, BTC, security or swaps!'}])
     }
   }
 
-  // Animation loop
   useEffect(()=>{
-    // Initialize after mount (browser only)
     pos.current = { x: 100, y: 100 }
     wpRef.current = getWaypoints(window.innerWidth-165, window.innerHeight-155)
     startSound()
@@ -272,7 +271,6 @@ export default function EmowallButterfly() {
 
   return (
     <>
-      {/* Alert Banner */}
       {alertVisible&&<div style={{position:'fixed',top:20,left:'50%',transform:'translateX(-50%)',
         padding:'12px 24px',background:'rgba(255,34,68,0.15)',border:'1px solid #ff2244',
         borderRadius:12,color:'#ff2244',fontSize:'0.8rem',zIndex:99999,fontFamily:'monospace',
@@ -280,11 +278,9 @@ export default function EmowallButterfly() {
         🚨 Security Alert: Suspicious transaction detected!
       </div>}
 
-      {/* Chat Panel */}
       {chatOpen&&<div ref={chatRef} style={{position:'fixed',width:300,maxHeight:'60vh',left:chatStyle.left,top:chatStyle.top,
         background:'#070e1d',border:'1px solid #627eea33',borderRadius:20,zIndex:9998,
         display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 0 40px #627eea22'}}>
-        {/* Header */}
         <div onPointerDown={onChatDown} onPointerMove={onChatMove} onPointerUp={onChatUp}
           style={{padding:'14px 18px 12px',background:'linear-gradient(135deg,#0d1b3e,#0a1628)',
             borderBottom:'1px solid #627eea22',cursor:'grab',userSelect:'none'}}>
@@ -300,14 +296,12 @@ export default function EmowallButterfly() {
           <div style={{fontSize:'0.55rem',color:'rgba(232,244,253,0.3)',fontFamily:'monospace',
             letterSpacing:1,textTransform:'uppercase'}}>Emowall AI 2.0 · drag to move</div>
         </div>
-        {/* Chain tabs */}
         <div style={{display:'flex',gap:6,padding:'8px 14px',borderBottom:'1px solid #627eea11',overflowX:'auto'}}>
           {[{l:'ETH',c:'#627eea'},{l:'SOL',c:'#9945ff'},{l:'BTC',c:'#f7931a'},{l:'ARB',c:'#12aaff'},{l:'MON',c:'#00e5ff'}].map(t=>(
             <div key={t.l} style={{padding:'3px 8px',borderRadius:20,fontSize:'0.6rem',border:`1px solid ${t.c}55`,
               color:t.c,background:`${t.c}11`,fontFamily:'monospace',whiteSpace:'nowrap',cursor:'pointer'}}>{t.l}</div>
           ))}
         </div>
-        {/* Messages */}
         <div style={{flex:1,overflowY:'auto',padding:'12px',display:'flex',flexDirection:'column',gap:8,minHeight:100}}>
           {msgs.map((m,i)=><div key={i} style={{
             alignSelf:m.role==='user'?'flex-end':'flex-start',maxWidth:'85%',
@@ -317,7 +311,6 @@ export default function EmowallButterfly() {
             border:m.role==='user'?'none':'1px solid #627eea22',
             fontSize:'0.72rem',color:'#E8F4FD',lineHeight:1.4}}>{m.text}</div>)}
         </div>
-        {/* Input */}
         <div style={{padding:'10px 12px',borderTop:'1px solid #627eea11',display:'flex',gap:8}}>
           <input value={input} onChange={e=>setInput(e.target.value)}
             onKeyDown={e=>e.key==='Enter'&&sendMsg()} placeholder="Ask Emowall AI..."
@@ -330,14 +323,10 @@ export default function EmowallButterfly() {
         </div>
       </div>}
 
-      {/* Status */}
       <div style={{position:'fixed',bottom:20,left:16,fontSize:'0.6rem',fontFamily:'monospace',
         color:state==='alert'?'#ff2244':state==='chat'?'#00e5ff':state==='held'?'#9945ff':'rgba(232,244,253,0.3)',
         zIndex:9996,pointerEvents:'none'}}>{status}</div>
 
-      {/* Security alert = triggered internally only */}
-
-      {/* Butterfly */}
       <div ref={bfRef} onPointerDown={onBfDown} onPointerMove={onBfMove} onPointerUp={onBfUp}
         style={{position:'fixed',width:160,height:150,cursor:state==='held'?'grab':'pointer',
           zIndex:9999,filter:glow,transition:'filter 0.2s',
@@ -365,7 +354,6 @@ export default function EmowallButterfly() {
             <filter id="bfbg" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
           </defs>
           <g transform="rotate(-20, 164, 130)">
-            {/* Left wings */}
             <g style={{transformOrigin:'168px 115px',transform:`scaleX(${sc})`}} filter="url(#bfwg)">
               <path d="M 168 128 C 148 128,100 132,58 148 C 22 162,8 188,22 212 C 36 235,78 242,118 230 C 150 220,168 194,168 158 Z" fill="url(#bflbl)" stroke="#12aaff" strokeWidth=".5" strokeOpacity=".7"/>
               <path d="M 168 128 C 148 128,100 132,58 148 C 22 162,8 188,22 212 C 36 235,78 242,118 230 C 150 220,168 194,168 158 Z" fill="url(#bflsl)"/>
@@ -376,7 +364,6 @@ export default function EmowallButterfly() {
               <path d="M 168 100 C 144 58,78 15,24 35 C -2 52,0 95,38 115 C 76 133,146 125,168 118 Z" fill="url(#bfcl)"/>
               <path d="M 168 100 C 144 58,78 15,24 35 C -2 52,0 95,38 115 C 76 133,146 125,168 118 Z" fill="url(#bfol)"/>
             </g>
-            {/* Right wings */}
             <g style={{transformOrigin:'160px 115px',transform:`scaleX(${sc})`}} filter="url(#bfwg)">
               <path d="M 160 128 C 180 128,228 132,270 148 C 306 162,320 188,306 212 C 292 235,250 242,210 230 C 178 220,160 194,160 158 Z" fill="url(#bflbr)" stroke="#12aaff" strokeWidth=".5" strokeOpacity=".7"/>
               <path d="M 160 128 C 180 128,228 132,270 148 C 306 162,320 188,306 212 C 292 235,250 242,210 230 C 178 220,160 194,160 158 Z" fill="url(#bflsr)"/>
@@ -387,17 +374,14 @@ export default function EmowallButterfly() {
               <path d="M 160 100 C 184 58,250 15,304 35 C 330 52,328 95,290 115 C 252 133,182 125,160 118 Z" fill="url(#bfcr)"/>
               <path d="M 160 100 C 184 58,250 15,304 35 C 330 52,328 95,290 115 C 252 133,182 125,160 118 Z" fill="url(#bfor)"/>
             </g>
-            {/* Body */}
             <ellipse cx="164" cy="122" rx="5.5" ry="40" fill="url(#bfbody)" filter="url(#bfbg)" opacity=".96"/>
             <ellipse cx="164" cy="122" rx="2.5" ry="26" fill="#00ff88" opacity=".28">
               <animate attributeName="opacity" values=".15;.5;.15" dur="2s" repeatCount="indefinite"/>
             </ellipse>
-            {/* Antennae */}
             <path d="M 161 96 Q 147 70,138 53" stroke="#00e5ff" strokeWidth="1.2" fill="none" opacity=".88" strokeLinecap="round"/>
             <circle cx="138" cy="53" r="3.5" fill="#00e5ff"><animate attributeName="r" values="2.5;4.5;2.5" dur="2s" repeatCount="indefinite"/></circle>
             <path d="M 167 96 Q 181 70,190 53" stroke="#9945ff" strokeWidth="1.2" fill="none" opacity=".88" strokeLinecap="round"/>
             <circle cx="190" cy="53" r="3.5" fill="#9945ff"><animate attributeName="r" values="2.5;4.5;2.5" dur="2s" begin=".6s" repeatCount="indefinite"/></circle>
-            {/* BTC pulse */}
             <circle cx="164" cy="115" r="4.5" fill={state==='alert'?'#ff2244':'#f7931a'}>
               <animate attributeName="r" values="3;6.5;3" dur="2s" repeatCount="indefinite"/>
               <animate attributeName="opacity" values=".6;1;.6" dur="2s" repeatCount="indefinite"/>
@@ -411,5 +395,4 @@ export default function EmowallButterfly() {
   )
 }
 
-// Named export for layout.tsx
 export const EmowallAIChat = EmowallButterfly
