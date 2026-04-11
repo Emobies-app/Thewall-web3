@@ -204,7 +204,7 @@ export default function EmowallButterfly() {
     chatHistory.current.push({role:'user',parts:[{text:val}]})
     setMsgs(p=>[...p,{role:'ai',text:'🦋 thinking...'}])
     try {
-      const res=await fetch('/api/gemini',{
+      const res=await fetch('/api/ai',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({messages:chatHistory.current})
