@@ -1,389 +1,472 @@
-"use client";
+'use client'
+import { useState, useEffect, useCallback } from 'react'
+import styles from './page.module.css'
 
-/**
- * TheWall Crypto Dashboard
- * ─────────────────────────────────────────────────────────────────────────────
- * Replaces the raw Alchemy HTML demo.
- *
- * Security improvements vs original:
- *  ✅  API key never exposed client-side — all Alchemy calls go through
- *      /api/prices  and  /api/alchemy-prices  (server-side routes)
- *  ✅  No localStorage key storage
- *  ✅  No CORS-exposed direct fetch to api.g.alchemy.com
- *
- * Chain identity (TheWall branding):
- *  BTC → Birth 🌟   ETH → Earth 🌍   SOL → Soul 🔮
- *  ARB → Orbit 🪐   MON → Moon  🌙
- */
+interface TokenPrice { price: number; change24h: number }
+interface Prices { [symbol: string]: TokenPrice }
+interface WalletData {
+  address: string
+  ethBalance: number
+  solBalance?: number
+  tokenBalances: Array<{ contractAddress: string; tokenBalance: string }>
+}
+interface UserWallet {
+  address: string
+  type: 'smart' | 'external'
+  email?: string
+  twoFaMethod?: 'biometric' | 'totp'
+}
 
-import { useEffect, useState, useCallback, useRef } from "react";
-import {
-  Chart as ChartJS,
-  CategoryScale, LinearScale, PointElement,
-  LineElement, Filler, Tooltip, Legend,
-} from "chart.js";
-import { Line } from "react-chartjs-2";
+const MAIN_WALLET = '0xba24d47ef3f4e1000000000000000000f3f4e1'
+const TREASURY = '0xecbdebb62d636808a3e94183070585814127393d'
+const SOL_WALLET = '5auZoWJxJodSU8dwgKmAfmphv5Z9Su3HAzEdLz1EUZs7'
+const GOAL_USD = 6_200_000
+const EMOCOIN = { balance: 250, priceUsd: 0.01 }
 
-ChartJS.register(
-  CategoryScale, LinearScale, PointElement,
-  LineElement, Filler, Tooltip, Legend
-);
+const TOKENS = [
+  { symbol: 'ETH', name: 'Ethereum', color: '#627eea', chain: 'Ethereum' },
+  { symbol: 'SOL', name: 'Solana', color: '#9945ff', chain: 'Solana' },
+  { symbol: 'BNB', name: 'BNB', color: '#f0b90b', chain: 'BSC' },
+  { symbol: 'USDC', name: 'USD Coin', color: '#2775ca', chain: 'Ethereum' },
+  { symbol: 'USDT', name: 'Tether', color: '#26a17b', chain: 'Ethereum' },
+  { symbol: 'BTC', name: 'Bitcoin', color: '#f7931a', chain: 'Bitcoin' },
+]
 
-// ── Chain Config ─────────────────────────────────────────────────────────────
-const CHAINS = [
-  { symbol: "BTC", name: "Birth",  icon: "🌟", tagline: "The Origin",      color: "#FFCC80", glow: "rgba(255,204,128,0.2)" },
-  { symbol: "ETH", name: "Earth",  icon: "🌍", tagline: "The Foundation",  color: "#4FC3F7", glow: "rgba(79,195,247,0.2)"  },
-  { symbol: "SOL", name: "Soul",   icon: "🔮", tagline: "Speed of Light",  color: "#B39DDB", glow: "rgba(179,157,219,0.2)" },
-  { symbol: "ARB", name: "Orbit",  icon: "🪐", tagline: "Layer Beyond",    color: "#90CAF9", glow: "rgba(144,202,249,0.2)" },
-  { symbol: "MON", name: "Moon",   icon: "🌙", tagline: "Rising Force",    color: "#80DEEA", glow: "rgba(128,222,234,0.2)" },
-] as const;
-
-type ChainSymbol = (typeof CHAINS)[number]["symbol"];
-type TimeRange   = "7D" | "30D" | "90D" | "1Y";
-
-const RANGE_DAYS: Record<TimeRange, number> = { "7D": 7, "30D": 30, "90D": 90, "1Y": 365 };
-
-interface ChainPrice  { price: number; change24h: number }
-interface HistPoint   { timestamp: number; price: number }
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-const fmt  = (n: number) =>
-  n >= 1000 ? `$${n.toLocaleString("en-US", { minimumFractionDigits: 2 })}` :
-  n >= 1    ? `$${n.toFixed(2)}` :
-              `$${n.toFixed(6)}`;
-
-const fmtDate = (ts: number, range: TimeRange) =>
-  new Date(ts).toLocaleDateString("en-US", range === "7D"
-    ? { weekday: "short" }
-    : { month: "short", day: "numeric" }
-  );
-
-// ── Component ─────────────────────────────────────────────────────────────────
-export default function DashboardPage() {
-  const [prices,      setPrices]      = useState<Record<string, ChainPrice>>({});
-  const [history,     setHistory]     = useState<HistPoint[]>([]);
-  const [activeChain, setActiveChain] = useState(CHAINS[0]);
-  const [range,       setRange]       = useState<TimeRange>("30D");
-  const [priceLoading, setPriceLoading] = useState(true);
-  const [chartLoading, setChartLoading] = useState(false);
-  const [lastUpdated,  setLastUpdated]  = useState<Date | null>(null);
-  const [priceError,   setPriceError]   = useState(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // ── Fetch current prices (/api/prices) ─────────────────────────────────────
-  const fetchPrices = useCallback(async () => {
-    try {
-      const res  = await fetch("/api/prices");
-      if (!res.ok) throw new Error();
-      const json = await res.json();
-      setPrices(json.prices ?? json);
-      setLastUpdated(new Date());
-      setPriceError(false);
-    } catch {
-      setPriceError(true);
-    } finally {
-      setPriceLoading(false);
-    }
-  }, []);
-
-  // ── Fetch historical (/api/alchemy-prices) ─────────────────────────────────
-  const fetchHistory = useCallback(async () => {
-    setChartLoading(true);
-    setHistory([]);
-    try {
-      const res = await fetch(
-        `/api/alchemy-prices?chain=${activeChain.symbol}&range=${range}`
-      );
-      if (!res.ok) throw new Error();
-      const json = await res.json();
-      setHistory(json.prices ?? []);
-    } catch {
-      setHistory([]);
-    } finally {
-      setChartLoading(false);
-    }
-  }, [activeChain, range]);
+export default function TheWall() {
+  const [screen, setScreen] = useState<'login' | 'dashboard'>('login')
+  const [loginStep, setLoginStep] = useState<'home' | 'email' | 'choose2fa' | 'biometric' | 'totp' | 'creating'>('home')
+  const [email, setEmail] = useState('')
+  const [totpCode, setTotpCode] = useState('')
+  const [error, setError] = useState('')
+  const [user, setUser] = useState<UserWallet | null>(null)
+  const [prices, setPrices] = useState<Prices>({})
+  const [walletData, setWalletData] = useState<WalletData | null>(null)
+  const [activeTab, setActiveTab] = useState('portfolio')
+  const [refreshing, setRefreshing] = useState(false)
+  const [priceError, setPriceError] = useState(false)
+  const [hasBiometric, setHasBiometric] = useState(false)
 
   useEffect(() => {
-    fetchPrices();
-    intervalRef.current = setInterval(fetchPrices, 30_000);
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [fetchPrices]);
+    const check = async () => {
+      try {
+        const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+        setHasBiometric(available)
+      } catch { setHasBiometric(false) }
+    }
+    check()
+  }, [])
 
-  useEffect(() => { fetchHistory(); }, [fetchHistory]);
+  const fetchPrices = useCallback(async () => {
+    try {
+      const res = await fetch('/api/prices')
+      const data = await res.json()
+      if (data.prices && Object.keys(data.prices).length > 0) {
+        setPrices(data.prices)
+        setPriceError(false)
+      }
+    } catch { setPriceError(true) }
+  }, [])
 
-  // ── Chart config ───────────────────────────────────────────────────────────
-  const chain = activeChain;
-  const chartData = {
-    labels:   history.map(p => fmtDate(p.timestamp, range)),
-    datasets: [{
-      label:           `${chain.name} (${chain.symbol})`,
-      data:            history.map(p => p.price),
-      borderColor:     chain.color,
-      backgroundColor: chain.glow,
-      borderWidth:     2,
-      pointRadius:     0,
-      pointHoverRadius: 5,
-      tension:         0.3,
-      fill:            true,
-    }],
-  };
+  const fetchBalance = useCallback(async (address: string) => {
+    try {
+      const [ethRes, solRes] = await Promise.all([
+        fetch('/api/balance?address=' + address),
+        fetch('/api/solana'),
+      ])
+      const ethData = await ethRes.json()
+      const solData = await solRes.json()
+      setWalletData({ ...ethData, solBalance: solData.solBalance || 0 })
+    } catch (e) { console.error('Balance fetch failed:', e) }
+  }, [])
 
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: { mode: "index" as const, intersect: false },
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        backgroundColor: "#0d1117",
-        borderColor:     chain.color,
-        borderWidth:     1,
-        titleColor:      chain.color,
-        bodyColor:       "#e6edf3",
-        padding:         12,
-        callbacks: {
-          label: (ctx: any) => ` ${fmt(ctx.parsed.y)}`,
-        },
-      },
-    },
-    scales: {
-      x: {
-        grid:  { color: "#161b22" },
-        ticks: { color: "#8b949e", font: { size: 11, family: "'Space Mono', monospace" }, maxTicksLimit: 8 },
-      },
-      y: {
-        position: "right" as const,
-        grid:     { color: "#161b22" },
-        ticks: {
-          color:    "#8b949e",
-          font:     { size: 11, family: "'Space Mono', monospace" },
-          callback: (v: any) => fmt(v),
-        },
-      },
-    },
-  };
+  useEffect(() => {
+    fetchPrices()
+    const interval = setInterval(fetchPrices, 60_000)
+    return () => clearInterval(interval)
+  }, [fetchPrices])
 
-  // Price % change
-  const activePrice   = prices[chain.symbol];
-  const priceChange   = activePrice?.change24h ?? 0;
-  const isUp          = priceChange >= 0;
+  const handleEmailContinue = () => {
+    if (!email.includes('@')) return
+    setError('')
+    setLoginStep('choose2fa')
+  }
 
-  // Chart trend
-  const trendUp = history.length > 1
-    ? history[history.length - 1].price >= history[0].price
-    : true;
+  const handleBiometricAuth = async () => {
+    setError('')
+    try {
+      const challenge = new Uint8Array(32)
+      window.crypto.getRandomValues(challenge)
+      const credential = await navigator.credentials.get({
+        publicKey: {
+          challenge,
+          rpId: window.location.hostname,
+          allowCredentials: [],
+          userVerification: 'required',
+          timeout: 60000,
+        }
+      } as CredentialRequestOptions)
+      if (credential) {
+        setLoginStep('creating')
+        await new Promise(r => setTimeout(r, 1500))
+        setUser({ address: MAIN_WALLET, type: 'smart', email, twoFaMethod: 'biometric' })
+        await fetchBalance(MAIN_WALLET)
+        setScreen('dashboard')
+      }
+    } catch {
+      setError('Biometric failed. Try again or use Google Authenticator.')
+    }
+  }
 
-  return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap');
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  const handleTotpAuth = async () => {
+    if (totpCode.length !== 6) return
+    setError('')
+    try {
+      const res = await fetch('/api/auth/totp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'totp', token: totpCode })
+      })
+      const data = await res.json()
+      if (data.valid) {
+        setLoginStep('creating')
+        await new Promise(r => setTimeout(r, 1500))
+        setUser({ address: MAIN_WALLET, type: 'smart', email, twoFaMethod: 'totp' })
+        await fetchBalance(MAIN_WALLET)
+        setScreen('dashboard')
+      } else {
+        setError('Invalid code. Try again.')
+      }
+    } catch {
+      setError('Verification failed.')
+    }
+  }
 
-        .dash { min-height: 100vh; background: #010409; color: #e6edf3; font-family: 'Syne', sans-serif; padding-bottom: 60px; }
+  const handleGuestView = () => {
+    setUser({ address: MAIN_WALLET, type: 'external' })
+    fetchBalance(MAIN_WALLET)
+    setScreen('dashboard')
+  }
 
-        /* ── Header ── */
-        .hdr { display: flex; align-items: center; justify-content: space-between; padding: 28px 24px 20px; border-bottom: 1px solid #161b22; flex-wrap: wrap; gap: 12px; }
-        .hdr-left h1 { font-size: clamp(20px, 5vw, 28px); font-weight: 800; letter-spacing: -.5px; }
-        .hdr-left p  { font-family: 'Space Mono', monospace; font-size: 10px; color: #8b949e; margin-top: 4px; }
-        .live-pill { display: flex; align-items: center; gap: 6px; font-family: 'Space Mono', monospace; font-size: 10px; color: #3fb950; }
-        .live-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: #3fb950; animation: blink 2s infinite; }
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await Promise.all([fetchPrices(), fetchBalance(user?.address || MAIN_WALLET)])
+    setRefreshing(false)
+  }
 
-        /* ── Price Cards ── */
-        .cards-row { display: flex; gap: 1px; overflow-x: auto; scrollbar-width: none; background: #161b22; border-top: 1px solid #161b22; border-bottom: 1px solid #161b22; }
-        .cards-row::-webkit-scrollbar { display: none; }
-        .price-card { flex: 1; min-width: 140px; background: #0d1117; padding: 18px 16px; cursor: pointer; transition: background .15s; position: relative; }
-        .price-card::after { content:''; position:absolute; bottom:0; left:0; right:0; height:2px; background:var(--cc); opacity:0; transition:opacity .2s; }
-        .price-card:hover { background: #111820; }
-        .price-card.active { background: #111820; }
-        .price-card.active::after { opacity:1; }
-        .pc-top { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-        .pc-icon { font-size: 20px; }
-        .pc-meta { }
-        .pc-name { font-size: 13px; font-weight: 700; color: var(--cc); line-height: 1.1; }
-        .pc-sym  { font-family: 'Space Mono', monospace; font-size: 9px; color: #8b949e; }
-        .pc-price { font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; color: #e6edf3; }
-        .pc-change { font-family: 'Space Mono', monospace; font-size: 10px; margin-top: 3px; }
-        .pc-change.up { color: #3fb950; }
-        .pc-change.dn { color: #f85149; }
-        .skeleton { width: 80px; height: 18px; background: #21262d; border-radius: 4px; animation: shimmer 1.5s infinite; }
-        @keyframes shimmer { 0%,100%{opacity:.5} 50%{opacity:1} }
+  const portfolioTotal = (() => {
+    const eth = (walletData?.ethBalance || 0) * (prices.ETH?.price || 0)
+    const sol = (walletData?.solBalance || 0) * (prices.SOL?.price || 0)
+    const emc = EMOCOIN.balance * EMOCOIN.priceUsd
+    return eth + sol + emc
+  })()
 
-        /* ── Chart section ── */
-        .chart-section { padding: 24px; }
-        .chart-top { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
-        .chart-hero { }
-        .chart-chain-label { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-        .chart-chain-label .icon { font-size: 26px; }
-        .chart-chain-name { font-size: 22px; font-weight: 800; color: var(--active); }
-        .chart-price { font-family: 'Space Mono', monospace; font-size: clamp(28px, 6vw, 48px); font-weight: 700; letter-spacing: -1px; color: var(--active); line-height: 1; }
-        .chart-subrow { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
-        .change-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; }
-        .change-chip.up { background: #0d2a14; color: #3fb950; }
-        .change-chip.dn { background: #2a0d0d; color: #f85149; }
-        .trend-chip { font-family: 'Space Mono', monospace; font-size: 10px; color: #8b949e; }
+  const goalPct = Math.min((portfolioTotal / GOAL_USD) * 100, 100)
+  const fmt = (n: number) => n >= 1000 ? '$' + (n / 1000).toFixed(1) + 'K' : '$' + n.toFixed(2)
+  const fmtAddr = (a: string) => a.slice(0, 8) + '...' + a.slice(-6)
+  const walletLabel = user?.type === 'smart'
+    ? ('SMART WALLET ' + (user.twoFaMethod === 'biometric' ? '👆' : '🔢'))
+    : 'MAIN WALLET'
+  const goalWidth = Math.max(goalPct, 0.1) + '%'
 
-        /* Range pills */
-        .range-row { display: flex; gap: 4px; background: #161b22; border-radius: 10px; padding: 4px; align-self: flex-start; }
-        .range-btn { padding: 5px 14px; border-radius: 7px; border: none; background: transparent; color: #8b949e; font-family: 'Space Mono', monospace; font-size: 11px; cursor: pointer; transition: all .15s; }
-        .range-btn.active { background: var(--active); color: #010409; font-weight: 700; }
-
-        /* Chart box */
-        .chart-box { height: 260px; background: #0d1117; border: 1px solid #161b22; border-radius: 14px; padding: 16px; position: relative; overflow: hidden; }
-        .chart-loading { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#0d1117; font-family:'Space Mono',monospace; font-size:11px; color:#8b949e; border-radius:14px; }
-        .chart-empty { height:100%; display:flex; align-items:center; justify-content:center; font-family:'Space Mono',monospace; font-size:11px; color:#30363d; }
-        .chart-trend-line { position:absolute; top:0; left:0; right:0; height:2px; background: linear-gradient(90deg, transparent, var(--active), transparent); opacity:.4; }
-
-        /* ── Security note ── */
-        .sec-note { margin: 0 24px; padding: 12px 16px; background: #0d2a14; border: 1px solid #1a4a28; border-radius: 10px; display: flex; align-items: flex-start; gap: 10px; }
-        .sec-note .icon { font-size: 14px; flex-shrink:0; margin-top:1px; }
-        .sec-note p { font-family: 'Space Mono', monospace; font-size: 10px; color: #3fb950; line-height: 1.6; }
-
-        /* ── Footer ── */
-        .footer { margin: 32px 24px 0; padding-top: 20px; border-top: 1px solid #161b22; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
-        .footer p { font-family: 'Space Mono', monospace; font-size: 10px; color: #8b949e; }
-        .footer a { color: #4FC3F7; text-decoration: none; }
-        .footer a:hover { text-decoration: underline; }
-      `}</style>
-
-      <div
-        className="dash"
-        style={{
-          "--active": chain.color,
-          "--active-glow": chain.glow,
-        } as React.CSSProperties}
-      >
-        {/* ── Header ── */}
-        <div className="hdr">
-          <div className="hdr-left">
-            <h1>🦋 TheWall Markets</h1>
-            <p>
-              {lastUpdated
-                ? `Last sync ${lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
-                : "Connecting to price feeds…"}
-            </p>
+  if (screen === 'login') {
+    return (
+      <div className={styles.loginWrap}>
+        <div className={styles.loginCard}>
+          <div className={styles.logo + ' fade-up'}>
+            <span className={styles.hexLogo}>⬡</span>
+            <div>
+              <div className={styles.logoTitle}>THE WALL</div>
+              <div className={styles.logoSub}>Web3 Portfolio · Kannur → Dubai</div>
+            </div>
           </div>
-          <div className="live-pill">
-            <span className="dot" />
-            LIVE · 30s
-          </div>
-        </div>
 
-        {/* ── Price Cards ── */}
-        <div className="cards-row">
-          {CHAINS.map((c) => {
-            const p = prices[c.symbol];
-            const chg = p?.change24h ?? 0;
-            const up  = chg >= 0;
-            const isActive = c.symbol === chain.symbol;
-            return (
-              <div
-                key={c.symbol}
-                className={`price-card${isActive ? " active" : ""}`}
-                style={{ "--cc": c.color } as React.CSSProperties}
-                onClick={() => setActiveChain(c as any)}
+          {loginStep === 'home' && (
+            <div className="fade-up-1">
+              <p className={styles.loginDesc}>
+                Gasless smart wallet. No seed phrase.<br />
+                Powered by Alchemy Account Kit.
+              </p>
+              <div className={styles.featureRow}>
+                {[['⬡','No Seed Phrase'],['⚡','Gasless Txns'],['🔒','2FA Secured']].map(([icon,label]) => (
+                  <div key={label} className={styles.featureChip}><span>{icon}</span><span>{label}</span></div>
+                ))}
+              </div>
+              <button className={styles.btnPrimary} onClick={() => setLoginStep('email')}>
+                Sign Up / Login
+              </button>
+              <button className={styles.btnSecondary} onClick={handleGuestView}>
+                View Portfolio (Guest)
+              </button>
+              <div className={styles.gasNote}>
+                ✅ Gas fees sponsored by Emobies-Sponsorship-v1 · 54+ networks
+              </div>
+            </div>
+          )}
+
+          {loginStep === 'email' && (
+            <div className="fade-up-1">
+              <p className={styles.loginDesc}>Enter your email to continue.</p>
+              <input className={styles.input} type="email" placeholder="you@example.com"
+                value={email} onChange={e => setEmail(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleEmailContinue()} autoFocus />
+              {error && <p style={{ color:'#ff4466', fontSize:'0.72rem', marginBottom:8 }}>{error}</p>}
+              <button className={styles.btnPrimary} onClick={handleEmailContinue}>Continue →</button>
+              <button className={styles.btnGhost} onClick={() => setLoginStep('home')}>← Back</button>
+            </div>
+          )}
+
+          {loginStep === 'choose2fa' && (
+            <div className="fade-up-1">
+              <p className={styles.loginDesc}>
+                <strong style={{ color:'#00b3f7' }}>Choose your 2FA method</strong><br />
+                This will be used every time you login
+              </p>
+              {hasBiometric && (
+                <button className={styles.btnPrimary} onClick={() => { setLoginStep('biometric'); handleBiometricAuth() }}>
+                  👆 Fingerprint / Face ID
+                </button>
+              )}
+              <button
+                className={hasBiometric ? styles.btnSecondary : styles.btnPrimary}
+                onClick={() => setLoginStep('totp')}
               >
-                <div className="pc-top">
-                  <span className="pc-icon">{c.icon}</span>
-                  <div className="pc-meta">
-                    <div className="pc-name">{c.name}</div>
-                    <div className="pc-sym">{c.symbol}</div>
-                  </div>
-                </div>
-                {priceLoading ? (
-                  <div className="skeleton" />
-                ) : (
-                  <>
-                    <div className="pc-price">{p ? fmt(p.price) : "—"}</div>
-                    <div className={`pc-change ${up ? "up" : "dn"}`}>
-                      {up ? "▲" : "▼"} {Math.abs(chg).toFixed(2)}%
-                    </div>
-                  </>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* ── Security note (replaces API key input) ── */}
-        <div className="sec-note" style={{ marginTop: "20px" }}>
-          <span className="icon">🔒</span>
-          <p>
-            Alchemy API key is never exposed client-side.
-            All price feeds route through <strong>/api/prices</strong> and{" "}
-            <strong>/api/alchemy-prices</strong> (server-side).
-          </p>
-        </div>
-
-        {/* ── Chart Section ── */}
-        <div className="chart-section">
-          <div className="chart-top">
-            <div className="chart-hero">
-              <div className="chart-chain-label">
-                <span className="icon">{chain.icon}</span>
-                <span className="chart-chain-name">{chain.name}</span>
-              </div>
-              {priceLoading ? (
-                <div className="skeleton" style={{ width: "160px", height: "44px" }} />
-              ) : (
-                <div className="chart-price">
-                  {activePrice ? fmt(activePrice.price) : "—"}
+                🔢 Google Authenticator
+              </button>
+              {!hasBiometric && (
+                <div style={{ fontSize:'0.68rem', color:'rgba(232,244,253,0.3)', textAlign:'center', marginTop:8 }}>
+                  Biometric not available on this device
                 </div>
               )}
-              <div className="chart-subrow">
-                <span className={`change-chip ${isUp ? "up" : "dn"}`}>
-                  {isUp ? "▲" : "▼"} {Math.abs(priceChange).toFixed(2)}% 24h
-                </span>
-                <span className="trend-chip">
-                  {history.length > 1
-                    ? `${range} trend: ${trendUp ? "↑ gaining" : "↓ declining"}`
-                    : ""}
-                </span>
+              <button className={styles.btnGhost} onClick={() => setLoginStep('email')}>← Back</button>
+            </div>
+          )}
+
+          {loginStep === 'biometric' && (
+            <div className="fade-up-1">
+              <p className={styles.loginDesc}>
+                👆 <strong>Biometric Verification</strong><br />
+                Use Face ID or Fingerprint
+              </p>
+              <div style={{ textAlign:'center', fontSize:'3rem', margin:'20px 0' }}>👆</div>
+              <button className={styles.btnPrimary} onClick={handleBiometricAuth}>
+                👆 Authenticate
+              </button>
+              {error && <p style={{ color:'#ff4466', fontSize:'0.72rem', textAlign:'center', marginTop:8 }}>{error}</p>}
+              <button className={styles.btnGhost} onClick={() => setLoginStep('choose2fa')}>← Back</button>
+            </div>
+          )}
+
+          {loginStep === 'totp' && (
+            <div className="fade-up-1">
+              <p className={styles.loginDesc}>
+                🔢 <strong>Google Authenticator</strong><br />
+                Enter your 6-digit code
+              </p>
+              <input className={styles.input} type="text" maxLength={6}
+                placeholder="000000" value={totpCode}
+                onChange={e => setTotpCode(e.target.value.replace(/\D/g,'').slice(0,6))}
+                onKeyDown={e => e.key === 'Enter' && handleTotpAuth()}
+                autoFocus />
+              {error && <p style={{ color:'#ff4466', fontSize:'0.72rem', marginBottom:8 }}>{error}</p>}
+              <button className={styles.btnPrimary} onClick={handleTotpAuth} disabled={totpCode.length !== 6}>
+                Verify →
+              </button>
+              <button className={styles.btnGhost} onClick={() => setLoginStep('choose2fa')}>← Back</button>
+            </div>
+          )}
+
+          {loginStep === 'creating' && (
+            <div className={styles.creating + ' fade-up-1'}>
+              <div className={styles.spinner} />
+              <p>Setting up your wallet...</p>
+              <p className={styles.creatingNote}>No gas fees. No seed phrase.</p>
+            </div>
+          )}
+        </div>
+        <div className={styles.loginFooter}>⬡ THE WALL · DWIN · 2026 · KANNUR → DUBAI</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className={styles.dashWrap}>
+      <header className={styles.header + ' fade-up'}>
+        <div className={styles.headerLeft}>
+          <span className={styles.hexSmall}>⬡</span>
+          <span className={styles.headerTitle}>THE WALL</span>
+        </div>
+        <div className={styles.headerRight}>
+          <span className={styles.chainBadge}>ETH</span>
+          <span className={styles.chainBadge}>SOL</span>
+          <span className={styles.chainBadge}>BNB</span>
+          <button className={styles.refreshBtn} onClick={handleRefresh} disabled={refreshing}>
+            <span style={{ display:'inline-block', animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }}>↻</span>
+          </button>
+          <button className={styles.logoutBtn} onClick={() => { setScreen('login'); setLoginStep('home') }}>⏻</button>
+        </div>
+      </header>
+
+      <main className={styles.main}>
+        <section className={styles.walletCard + ' fade-up-1'}>
+          <div className={styles.walletTop}>
+            <div>
+              <div className={styles.walletLabel}>{walletLabel}</div>
+              <div className={styles.walletAddr}>
+                {fmtAddr(user?.address || MAIN_WALLET)}
+                <button className={styles.copyBtn} onClick={() => navigator.clipboard.writeText(user?.address || MAIN_WALLET)}>📋</button>
+              </div>
+              {user?.email && <div className={styles.walletEmail}>{user.email}</div>}
+            </div>
+            <div className={styles.walletTotal}>
+              <div className={styles.totalLabel}>TOTAL PORTFOLIO</div>
+              <div className={styles.totalAmount}>
+                {portfolioTotal > 0 ? fmt(portfolioTotal) : <span className={styles.loading}>$···</span>}
               </div>
             </div>
-
-            {/* Range selector */}
-            <div className="range-row">
-              {(Object.keys(RANGE_DAYS) as TimeRange[]).map((r) => (
-                <button
-                  key={r}
-                  className={`range-btn${range === r ? " active" : ""}`}
-                  onClick={() => setRange(r)}
-                >
-                  {r}
-                </button>
-              ))}
+          </div>
+          <div className={styles.goalSection}>
+            <div className={styles.goalRow}>
+              <span className={styles.goalLabel}>GOAL: $6,200,000 (₹52 Crore)</span>
+              <span className={styles.goalPct}>{goalPct.toFixed(4)}%</span>
+            </div>
+            <div className={styles.goalBar}>
+              <div className={styles.goalFill} style={{ width: goalWidth }} />
             </div>
           </div>
+        </section>
 
-          {/* Chart */}
-          <div className="chart-box">
-            <div className="chart-trend-line" />
-            {chartLoading ? (
-              <div className="chart-loading">Loading {chain.name} history…</div>
-            ) : history.length > 0 ? (
-              <Line data={chartData} options={chartOptions} />
-            ) : (
-              <div className="chart-empty">No data for {chain.symbol} · {range}</div>
-            )}
+        <section className={styles.emoSection + ' fade-up-2'}>
+          <div className={styles.emoCard}>
+            <span className={styles.emoIcon}>🪙</span>
+            <div>
+              <div className={styles.emoTitle}>EMOCOINS</div>
+              <div className={styles.emoBalance}>{EMOCOIN.balance} EMC</div>
+            </div>
+            <div className={styles.emoRight}>
+              <div className={styles.emoPrice}>1 EMC = ${EMOCOIN.priceUsd}</div>
+              <button className={styles.claimBtn}>+ Daily Claim</button>
+            </div>
           </div>
+        </section>
+
+        <div className={styles.tabs + ' fade-up-3'}>
+          {['portfolio','prices','history','treasury'].map(tab => (
+            <button key={tab}
+              className={styles.tab + (activeTab === tab ? ' ' + styles.tabActive : '')}
+              onClick={() => setActiveTab(tab)}>
+              {tab === 'portfolio' && '💼'}
+              {tab === 'prices' && '📊'}
+              {tab === 'history' && '📋'}
+              {tab === 'treasury' && '🏛️'} {tab}
+            </button>
+          ))}
         </div>
 
-        {/* ── Footer ── */}
-        <div className="footer">
-          <p>
-            Powered by{" "}
-            <a href="https://www.alchemy.com/prices" target="_blank" rel="noreferrer">
-              Alchemy Prices API
-            </a>{" "}
-            · CEX & DEX aggregated feeds
-          </p>
-          <p>
-            {priceError ? "⚠ Price feed offline" : `${CHAINS.length} chains · auto-refreshes every 30s`}
-          </p>
+        <div className={styles.tabContent + ' fade-up-4'}>
+          {activeTab === 'portfolio' && (
+            <div className={styles.tokenGrid}>
+              {TOKENS.map(token => {
+                const p = prices[token.symbol]
+                const bal = token.symbol === 'ETH' ? walletData?.ethBalance || 0
+                  : token.symbol === 'SOL' ? walletData?.solBalance || 0 : 0
+                const priceStr = p ? '$' + p.price.toLocaleString('en', { minimumFractionDigits:2, maximumFractionDigits:2 }) : null
+                return (
+                  <div key={token.symbol} className={styles.tokenCard}>
+                    <div className={styles.tokenLeft}>
+                      <div className={styles.tokenDot} style={{ background: token.color }} />
+                      <div>
+                        <div className={styles.tokenSymbol}>{token.symbol}</div>
+                        <div className={styles.tokenName}>{token.name}</div>
+                        <div className={styles.tokenChain}>{token.chain}</div>
+                      </div>
+                    </div>
+                    <div className={styles.tokenRight}>
+                      <div className={styles.tokenPrice}>
+                        {priceStr ? priceStr : <span className={styles.loading}>$···</span>}
+                      </div>
+                      {p && (
+                        <div className={styles.tokenChange + ' ' + (p.change24h >= 0 ? styles.green : styles.red)}>
+                          {p.change24h >= 0 ? '▲' : '▼'} {Math.abs(p.change24h).toFixed(2)}%
+                        </div>
+                      )}
+                      {bal > 0 && <div className={styles.tokenBal}>{bal.toFixed(4)} {token.symbol}</div>}
+                      <div className={styles.tokenLive}><span className={styles.liveDot} />Live</div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {activeTab === 'prices' && (
+            <div>
+              {priceError && <div className={styles.errorBanner}>⚠ Price feed unavailable.</div>}
+              <div className={styles.priceTable}>
+                <div className={styles.priceHeader}>
+                  <span>Asset</span><span>Price (USD)</span><span>24h Change</span>
+                </div>
+                {TOKENS.map(token => {
+                  const p = prices[token.symbol]
+                  const priceStr = p ? '$' + p.price.toLocaleString('en', { minimumFractionDigits:2 }) : '···'
+                  const changeStr = p ? (p.change24h >= 0 ? '+' : '') + p.change24h.toFixed(2) + '%' : '···'
+                  return (
+                    <div key={token.symbol} className={styles.priceRow}>
+                      <span><span className={styles.tokenDotSmall} style={{ background: token.color }} />{token.symbol}</span>
+                      <span className={styles.priceVal}>{priceStr}</span>
+                      <span className={p && p.change24h >= 0 ? styles.green : styles.red}>{changeStr}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'history' && (
+            <div className={styles.historySection}>
+              <div className={styles.historyItem}>
+                <div className={styles.historyLeft}>
+                  <span className={styles.historyIcon}>⬡</span>
+                  <div>
+                    <div className={styles.historyTitle}>First SOL Transaction</div>
+                    <div className={styles.historyDate}>Sep 19, 2024 · Solana Mainnet</div>
+                  </div>
+                </div>
+                <div className={styles.historyRight}>
+                  <div className={styles.historySig}>5GRcJv...amLt</div>
+                  <div className={styles.historyFee}>Fee: 0.000015 SOL</div>
+                </div>
+              </div>
+              <div className={styles.historyNote}>Connect Alchemy API key to load full transaction history</div>
+            </div>
+          )}
+
+          {activeTab === 'treasury' && (
+            <div className={styles.treasurySection}>
+              <div className={styles.treasuryCard}>
+                <div className={styles.treasuryIcon}>🏛️</div>
+                <div>
+                  <div className={styles.treasuryLabel}>TREASURY WALLET</div>
+                  <div className={styles.treasuryAddr}>{TREASURY}</div>
+                </div>
+                <button className={styles.copyBtn} onClick={() => navigator.clipboard.writeText(TREASURY)}>📋</button>
+              </div>
+              <div className={styles.treasuryCard}>
+                <div className={styles.treasuryIcon}>◎</div>
+                <div>
+                  <div className={styles.treasuryLabel}>SOLANA WALLET</div>
+                  <div className={styles.treasuryAddr}>{SOL_WALLET}</div>
+                </div>
+                <button className={styles.copyBtn} onClick={() => navigator.clipboard.writeText(SOL_WALLET)}>📋</button>
+              </div>
+              <div className={styles.webhookStatus}>
+                <span className={styles.liveDot} />
+                Alchemy Webhook Active · Solana Mainnet · Address Activity
+              </div>
+            </div>
+          )}
         </div>
-      </div>
-    </>
-  );
-      }
+      </main>
+      <footer className={styles.footer}>⬡ THE WALL · KANNUR → DUBAI · DWIN · 2026</footer>
+    </div>
+  )
+}
