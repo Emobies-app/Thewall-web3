@@ -5,6 +5,7 @@ import './globals.css'
 import { WalletProvider } from './context/wallet'
 import SWRegister from './sw-register'
 import EmowallAIChatWrapper from '@/components/EmowallAIChatWrapper'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 export const metadata: Metadata = {
   title: '⬡ THE WALL',
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           {children}
           <EmowallAIChatWrapper />
         </WalletProvider>
+        <SpeedInsights />
       </body>
     </html>
   )
